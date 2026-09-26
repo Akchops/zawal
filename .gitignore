@@ -7,3 +7,4 @@ dist/
 *.f32
 renders/raw/
 .DS_Store
+__pycache__/

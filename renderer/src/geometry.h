@@ -12,12 +12,14 @@
 // architectural render read as fake.
 #pragma once
 #include "common.h"
+#include "foliage.h"
 #include "noise.h"
+#include "objects.h"
 #include "patterns.h"
 
 namespace zw {
 
-enum PrimType : uint8_t { P_BOX = 0, P_LATTICE, P_CYL, P_SPHERE, P_QUAD, P_HFIELD };
+enum PrimType : uint8_t { P_BOX = 0, P_LATTICE, P_CYL, P_SPHERE, P_QUAD, P_HFIELD, P_CAPSULE, P_SDF, P_FOLIAGE };
 
 enum PrimFlags : uint8_t {
   F_NO_CAMERA = 1,   // invisible to camera rays (still casts shadows / bounces)
@@ -49,6 +51,21 @@ struct Prim {
   V3 c; float r = 0;        // sphere/cylinder centre + radius
   int hfield = 0;           // height-field id
   uint8_t grainAxis = 0;    // timber grain direction for materials
+  V3 pa, pb;                // capsule segment
+  int obj = -1;             // SDF object / foliage index
+};
+
+// A run-off stain source: water (or copper wash) that ran down a wall face
+// from a sill, a spout or a parapet. The wall is identified by its normal axis
+// (0 = X, 2 = Z) and face coordinate; u is the horizontal coordinate along it.
+struct Stain {
+  int axis = 2;           // wall normal axis
+  float plane = 0;        // face coordinate on that axis
+  float u0 = 0, u1 = 0;   // horizontal extent of the source
+  float yTop = 0, len = 1;
+  V3 tint = V3(0.8f, 0.76f, 0.7f);   // multiplies albedo at full strength
+  float strength = 0.5f;
+  uint32_t seed = 1;
 };
 
 struct Hit {
@@ -56,6 +73,8 @@ struct Hit {
   int prim = -1;
   V3 n;          // geometric normal, facing the incoming ray
   int face = -1; // box face (0..5) or -2 for a lattice hole wall
+  int mat = -1;  // material override (SDF sub-material slot, leaves)
+  uint32_t sub = 0;  // per-leaf / per-part id for variation
 };
 
 // Smooth dunes for the Qudra desert: large wind-shaped swells. Uses only
@@ -82,6 +101,9 @@ struct Scene {
   std::vector<AABB> cuts;          // CSG subtraction boxes
   std::vector<PatternParams> patterns;
   std::vector<int> planes;         // infinite ground planes (indices into prims) — kept out of BVH
+  std::vector<SdfObj> sdfs;        // small-object library instances
+  std::vector<Foliage> foliage;    // leaf-cell canopies
+  std::vector<Stain> stains;       // run-off streak sources (weathering)
   float groundY = 0.0f;
   int groundMat = -1;              // -1: no infinite ground
 
@@ -142,6 +164,47 @@ struct Scene {
     return (int)prims.size() - 1;
   }
 
+  int addCapsule(V3 a, V3 b, float r, int mat) {
+    Prim p; p.type = P_CAPSULE; p.pa = a; p.pb = b; p.r = r;
+    p.lo = vmin(a, b) - V3(r); p.hi = vmax(a, b) + V3(r); p.mat = mat;
+    p.seed = (uint32_t)prims.size() * 2654435761u;
+    V3 e = vabs(b - a);
+    p.grainAxis = e.x >= e.y && e.x >= e.z ? 0 : (e.y >= e.z ? 1 : 2);
+    prims.push_back(p);
+    return (int)prims.size() - 1;
+  }
+  // Instance a library object at pos, rotated by yawDeg about +Y, scaled.
+  int addSdf(int kind, V3 pos, float yawDeg, float scale, std::initializer_list<int> mats,
+             std::initializer_list<float> prm = {}) {
+    SdfObj o; o.kind = kind; o.pos = pos; o.scale = scale;
+    float a = yawDeg * PI / 180.0f; o.cosr = std::cos(a); o.sinr = std::sin(a);
+    int k = 0; for (float v : prm) if (k < 6) o.prm[k++] = v;
+    k = 0; for (int m : mats) if (k < 4) o.mats[k++] = m;
+    for (; k < 4; k++) o.mats[k] = o.mats[0];
+    o.seed = (uint32_t)sdfs.size() * 0x9e3779b9u + 17u;
+    V3 llo, lhi; sdfBounds(kind, o.prm, llo, lhi);
+    // World bounds of the rotated local box.
+    AABB wb;
+    for (int c = 0; c < 8; c++) {
+      V3 l((c & 1) ? lhi.x : llo.x, (c & 2) ? lhi.y : llo.y, (c & 4) ? lhi.z : llo.z);
+      l = l * scale;
+      V3 w(o.cosr * l.x - o.sinr * l.z, l.y, o.sinr * l.x + o.cosr * l.z);
+      wb.grow(w + pos);
+    }
+    sdfs.push_back(o);
+    Prim p; p.type = P_SDF; p.obj = (int)sdfs.size() - 1; p.lo = wb.lo - V3(0.002f); p.hi = wb.hi + V3(0.002f);
+    p.mat = o.mats[0]; p.seed = o.seed;
+    prims.push_back(p);
+    return (int)prims.size() - 1;
+  }
+  int addFoliage(const Foliage& f) {
+    foliage.push_back(f);
+    Prim p; p.type = P_FOLIAGE; p.obj = (int)foliage.size() - 1; p.lo = f.lo; p.hi = f.hi; p.mat = f.mat;
+    p.seed = f.seed;
+    prims.push_back(p);
+    return (int)prims.size() - 1;
+  }
+
   AABB primBounds(const Prim& p) const {
     AABB b; b.lo = p.lo; b.hi = p.hi;
     if (p.type == P_QUAD) { b.lo.y -= 1e-3f; b.hi.y += 1e-3f; }
@@ -186,18 +249,20 @@ struct Scene {
   }
 
   // Entry face (0..5 = -X,+X,-Y,+Y,-Z,+Z) of a box for a ray entering at t0.
+  // An axis the ray runs parallel to can be neither the entry nor the exit
+  // face (its slab time would be +-huge with an arbitrary sign).
   static inline int entryFace(const V3& lo, const V3& hi, const Ray& r, const V3& inv) {
-    float tx = (r.d.x > 0 ? lo.x - r.o.x : hi.x - r.o.x) * inv.x;
-    float ty = (r.d.y > 0 ? lo.y - r.o.y : hi.y - r.o.y) * inv.y;
-    float tz = (r.d.z > 0 ? lo.z - r.o.z : hi.z - r.o.z) * inv.z;
+    float tx = std::fabs(r.d.x) > 1e-12f ? (r.d.x > 0 ? lo.x - r.o.x : hi.x - r.o.x) * inv.x : -INF;
+    float ty = std::fabs(r.d.y) > 1e-12f ? (r.d.y > 0 ? lo.y - r.o.y : hi.y - r.o.y) * inv.y : -INF;
+    float tz = std::fabs(r.d.z) > 1e-12f ? (r.d.z > 0 ? lo.z - r.o.z : hi.z - r.o.z) * inv.z : -INF;
     if (tx >= ty && tx >= tz) return r.d.x > 0 ? 0 : 1;
     if (ty >= tz) return r.d.y > 0 ? 2 : 3;
     return r.d.z > 0 ? 4 : 5;
   }
   static inline int exitFace(const V3& lo, const V3& hi, const Ray& r, const V3& inv) {
-    float tx = (r.d.x > 0 ? hi.x - r.o.x : lo.x - r.o.x) * inv.x;
-    float ty = (r.d.y > 0 ? hi.y - r.o.y : lo.y - r.o.y) * inv.y;
-    float tz = (r.d.z > 0 ? hi.z - r.o.z : lo.z - r.o.z) * inv.z;
+    float tx = std::fabs(r.d.x) > 1e-12f ? (r.d.x > 0 ? hi.x - r.o.x : lo.x - r.o.x) * inv.x : INF;
+    float ty = std::fabs(r.d.y) > 1e-12f ? (r.d.y > 0 ? hi.y - r.o.y : lo.y - r.o.y) * inv.y : INF;
+    float tz = std::fabs(r.d.z) > 1e-12f ? (r.d.z > 0 ? hi.z - r.o.z : lo.z - r.o.z) * inv.z : INF;
     if (tx <= ty && tx <= tz) return r.d.x > 0 ? 1 : 0;
     if (ty <= tz) return r.d.y > 0 ? 3 : 2;
     return r.d.z > 0 ? 5 : 4;
@@ -297,14 +362,16 @@ struct Scene {
     float a = r.d.x * r.d.x + r.d.z * r.d.z;
     float best = INF; V3 bn;
     if (a > 1e-12f) {
-      float b = ox * r.d.x + oz * r.d.z, c = ox * ox + oz * oz - p.r * p.r;
-      float disc = b * b - a * c;
+      // 2D closest approach, cancellation-free (thin cables, lamp chains).
+      float b = ox * r.d.x + oz * r.d.z;
+      float cr = ox * r.d.z - oz * r.d.x;            // 2D cross: |cr|/sqrt(a) = distance to the axis
+      float disc = a * p.r * p.r - cr * cr;           // = b^2 - a*c, rearranged
       if (disc >= 0) {
         float s = std::sqrt(disc);
         for (float t : {(-b - s) / a, (-b + s) / a}) {
           if (t > tmin && t < tmax && t < best) {
             float y = r.o.y + r.d.y * t;
-            if (y >= p.lo.y && y <= p.hi.y) { best = t; bn = V3(ox + r.d.x * t, 0.0f, oz + r.d.z * t) / p.r; break; }
+            if (y >= p.lo.y && y <= p.hi.y) { best = t; bn = normalize(V3(ox + r.d.x * t, 0.0f, oz + r.d.z * t)); break; }
           }
         }
       }
@@ -324,14 +391,11 @@ struct Scene {
   }
 
   bool hitSphere(const Prim& p, const Ray& r, float tmin, float tmax, Hit& h) const {
-    V3 oc = r.o - p.c;
-    float b = dot(oc, r.d), c = dot(oc, oc) - p.r * p.r, disc = b * b - c;
-    if (disc < 0) return false;
-    float s = std::sqrt(disc);
-    float t = -b - s;
-    if (t < tmin) t = -b + s;
+    float t0, t1;
+    if (!raySphereStable(r.o, r.d, p.c, p.r, t0, t1)) return false;
+    float t = t0 > tmin ? t0 : t1;
     if (t < tmin || t > tmax) return false;
-    h.t = t; h.n = (oc + r.d * t) / p.r; h.face = 0;
+    h.t = t; h.n = normalize(r.o + r.d * t - p.c); h.face = 0;
     return true;
   }
 
@@ -381,6 +445,104 @@ struct Scene {
     return false;
   }
 
+  // Ray-sphere in the cancellation-free form: the squared distance from the
+  // centre to the ray comes from a cross product, not from |oc|^2 - (oc.d)^2,
+  // which loses every significant digit for a small sphere seen from afar.
+  static inline bool raySphereStable(V3 o, V3 d, V3 c, float r, float& t0, float& t1) {
+    V3 oc = o - c;
+    float tca = -dot(oc, d);
+    V3 perp = cross(oc, d);
+    float d2 = dot(perp, perp), r2 = r * r;
+    if (d2 > r2) return false;
+    float thc = std::sqrt(r2 - d2);
+    t0 = tca - thc; t1 = tca + thc;
+    return true;
+  }
+
+  // Ray-capsule (segment pa-pb, radius r), also cancellation-free: work with
+  // the components perpendicular to the axis (cross products with the unit
+  // axis) so a 9 mm cable seen from 20 m is still hit on its surface. The
+  // textbook |oa|^2 - (oa.u)^2 form returned hits metres off the cable here.
+  bool hitCapsule(const Prim& p, const Ray& r, float tmin, float tmax, Hit& h) const {
+    V3 ba = p.pb - p.pa;
+    float L = length(ba);
+    V3 u = ba / L;
+    V3 oa = r.o - p.pa;
+    V3 oaP = cross(oa, u), dP = cross(r.d, u);
+    float a = dot(dP, dP), b = dot(oaP, dP), c = dot(oaP, oaP) - p.r * p.r;
+    float best = INF;
+    if (a > 1e-14f) {
+      float disc = b * b - a * c;
+      if (disc >= 0.0f) {
+        float s = std::sqrt(disc);
+        for (float t : {(-b - s) / a, (-b + s) / a}) {
+          float y = dot(oa + r.d * t, u);
+          if (t > tmin && t < tmax && y > 0.0f && y < L) { best = t; break; }
+        }
+      }
+    }
+    for (int e = 0; e < 2; e++) {
+      float s0, s1;
+      V3 cc = e ? p.pb : p.pa;
+      if (!raySphereStable(r.o, r.d, cc, p.r, s0, s1)) continue;
+      for (float t : {s0, s1}) {
+        if (t > tmin && t < tmax && t < best) {
+          float y = dot(oa + r.d * t, u);
+          if ((e == 0 && y <= 0.0f) || (e == 1 && y >= L)) { best = t; break; }
+        }
+      }
+    }
+    if (best >= tmax || best >= INF) return false;
+    V3 q = r.o + r.d * best - p.pa;
+    float k = clampf(dot(q, u), 0.0f, L);
+    h.t = best; h.n = normalize(q - u * k); h.face = 0;
+    return true;
+  }
+
+  // Sphere-traced library object inside its bounds.
+  bool hitSdf(const Prim& p, const Ray& r, const V3& inv, float tmin, float tmax, Hit& h) const {
+    float a0, a1;
+    if (!slab(p.lo, p.hi, r, inv, a0, a1)) return false;
+    const SdfObj& o = sdfs[p.obj];
+    float t = std::max(a0, tmin), tEnd = std::min(a1, tmax);
+    if (t > tEnd) return false;
+    const float eps = 1.5e-4f * o.scale;
+    float d = sdfWorld(o, r.o + r.d * t, nullptr);
+    // Escape phase: a secondary ray leaving this object's own surface starts
+    // within eps; walk off it before accepting hits.
+    int esc = 0;
+    while (d < eps && esc < 12 && t < tEnd) {
+      if (d < -4.0f * eps && t <= tmin + 1e-6f) break;   // genuinely inside: fall through to hit
+      t += 4.0f * eps; d = sdfWorld(o, r.o + r.d * t, nullptr); esc++;
+    }
+    for (int i = 0; i < 220 && t <= tEnd; i++) {
+      if (d < eps) {
+        V3 x = r.o + r.d * t;
+        const float e = 2e-4f * o.scale;
+        V3 n(sdfWorld(o, x + V3(e, 0, 0), nullptr) - sdfWorld(o, x - V3(e, 0, 0), nullptr),
+             sdfWorld(o, x + V3(0, e, 0), nullptr) - sdfWorld(o, x - V3(0, e, 0), nullptr),
+             sdfWorld(o, x + V3(0, 0, e), nullptr) - sdfWorld(o, x - V3(0, 0, e), nullptr));
+        h.t = t; h.n = normalize(n); h.face = 0;
+        int slot = 0;
+        sdfWorld(o, x, &slot);
+        h.mat = o.mats[slot & 3];
+        h.sub = (uint32_t)slot;
+        return true;
+      }
+      t += std::max(d * 0.85f, 0.25f * eps);   // under-relaxed: several SDFs are bounds, not exact
+      d = sdfWorld(o, r.o + r.d * t, nullptr);
+    }
+    return false;
+  }
+
+  bool hitFoliage(const Prim& p, const Ray& r, float tmin, float tmax, Hit& h) const {
+    const Foliage& f = foliage[p.obj];
+    float t; V3 n; uint32_t id;
+    if (!f.trace(r.o, r.d, tmin, tmax, t, n, id)) return false;
+    h.t = t; h.n = n; h.face = 0; h.mat = f.mat; h.sub = id;
+    return true;
+  }
+
   inline bool hitPrim(int i, const Ray& r, const V3& inv, float tmin, float tmax, Hit& h, bool anyHit) const {
     const Prim& p = prims[i];
     switch (p.type) {
@@ -390,6 +552,9 @@ struct Scene {
       case P_SPHERE: return hitSphere(p, r, tmin, tmax, h);
       case P_QUAD: return hitQuad(p, r, tmin, tmax, h);
       case P_HFIELD: return hitHField(p, r, inv, tmin, tmax, h);
+      case P_CAPSULE: return hitCapsule(p, r, tmin, tmax, h);
+      case P_SDF: return hitSdf(p, r, inv, tmin, tmax, h);
+      case P_FOLIAGE: return hitFoliage(p, r, tmin, tmax, h);
     }
     return false;
   }

@@ -119,6 +119,14 @@ struct RNG {
   }
 };
 
+// NaN/Inf test that survives -ffast-math (which folds x == x to true).
+inline bool isFiniteF(float f) {
+  uint32_t u;
+  std::memcpy(&u, &f, 4);
+  return (u & 0x7f800000u) != 0x7f800000u;
+}
+inline bool isFiniteV(V3 v) { return isFiniteF(v.x) && isFiniteF(v.y) && isFiniteF(v.z); }
+
 struct Ray {
   V3 o, d;
 };
