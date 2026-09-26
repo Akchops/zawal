@@ -136,6 +136,7 @@ async function start() {
   // ---------------- C: the live sun ----------------
   const sunStage = new SunStage({ canvas: cvSun, base: `/sun/sun-${aspect}.json` });
   let sunOK = null;                         // null = not tried, true/false
+  sunStage.onLost = () => { sunOK = false; wake(); };   // context lost: the day's frames take over
   const sunWhen = stage.querySelector("[data-sun-when]");
   const touch = matchMedia("(pointer: coarse)").matches;
   if (touch) {
@@ -391,7 +392,30 @@ async function start() {
   }
 
   // ---------------- drawing ----------------
+  // Frame-drop guard: while the film is drawing, watch the interval between
+  // animation frames. A median over 40 ms (under 25 fps) for 45 frames steps
+  // one tier down: first the walk's reprojection becomes a plain blend and
+  // canvases drop to 1x density; then the live sun hands over to the day's
+  // frames. Never back up during a visit.
+  let lastT = 0, level = 0;
+  const gaps = [];
+  const guardOn = !new URLSearchParams(location.search).has("noguard");   // QA on software GL turns it off
+  const guard = (t, drawing) => {
+    if (!guardOn) return;
+    // Gaps over 250 ms are an idle loop (a paused reader), not a slow device.
+    if (drawing && lastT && t - lastT < 0.25) gaps.push(t - lastT);
+    lastT = drawing ? t : 0;
+    if (gaps.length < 45) return;
+    const med = gaps.slice().sort((x, y) => x - y)[gaps.length >> 1];
+    gaps.length = 0;
+    if (med <= 0.040 || level >= 2) return;
+    level++;
+    if (level === 1) { pb.cheap = true; pb.maxDpr = pa.maxDpr = comp.maxDpr = sunStage.maxDpr = 1; pb.dirty = pa.dirty = comp.dirty = sunStage.dirty = true; }
+    else if (sunOK) { sunOK = false; }
+    wake();
+  };
   everyFrame((time, b) => {
+    guard(time, b < 12.4 || b >= 13.4);
     if (b < 4) pb.draw(time);
     else if (b < 10.2 || (inC(b) && sunOK === false)) pa.draw(time);
     if (b >= 9.5 && b < 12.4 && sunOK) sunStage.draw();

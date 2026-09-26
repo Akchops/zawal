@@ -17,66 +17,95 @@ import { url } from "./paths.js";
 
 const FS = `
 precision highp float;
-varying vec2 vUv;
-uniform sampler2D uA, uB, uMA, uMB;
-uniform vec4 uCover;
-uniform float uMode, uT, uGain, uCell, uAspect;
-uniform vec3 uInk;
-uniform vec2 uMask;          // mask size in texels
+varying vec2 vUv;             // 0..1 across the canvas, y up
+uniform sampler2D uA, uB;     // the outgoing and incoming images (sRGB)
+uniform sampler2D uMA, uMB;   // their sun masks: signed distance to the lit edge, 1/4 size
+uniform vec4 uCover;          // cover-crop of the image into the canvas (xy scale, zw offset)
+uniform float uMode;          // 0 morph (D), 1 close the screen (method), 2 fade (night)
+uniform float uT;             // progress 0..1 of the current mode
+uniform float uGain;          // fade mode: 0 = all ink, 1 = the image (the courtyard emerging)
+uniform float uCell;          // close mode: lattice cell size, as a fraction of the canvas height
+uniform float uAspect;        // canvas width / height
+uniform vec3 uInk;            // the page's shade colour (#0f1418) in linear light
 
+// Images are stored top row first; uv has y up.
 vec4 img(sampler2D s, vec2 uv) { return texture2D(s, vec2(uv.x, 1.0 - uv.y)); }
+// sRGB <-> linear, the same smooth fits as player.js (no crease at the curve's joint).
 vec3 lin(vec3 c) { return c * (c * (c * 0.305306011 + 0.682171111) + 0.012522878); }
 vec3 srgb(vec3 c) {
   vec3 s1 = sqrt(c), s2 = sqrt(s1), s3 = sqrt(s2);
   return clamp(0.585122381 * s1 + 0.783140355 * s2 - 0.368262736 * s3, 0.0, 1.0);
 }
-float sdfAt(sampler2D m, vec2 uv) { return (img(m, uv).r * 255.0 - 128.0) * 0.25; }   // mask px, < 0 lit
+// Mask texel -> signed distance in mask pixels: stored as 128 + 4 d, so
+// (v * 255 - 128) / 4. Negative = in sun, positive = in shade.
+float sdfAt(sampler2D m, vec2 uv) { return (img(m, uv).r * 255.0 - 128.0) * 0.25; }
 
-// The carved screen's star (renderer/src/patterns.h PAT_STAR8), unit period.
+// The carved screen's star (renderer/src/patterns.h PAT_STAR8) at unit
+// period: c is the position within its cell, centred (-0.5..0.5).
 float sdBox2(vec2 p, vec2 b) { vec2 d = abs(p) - b; return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0); }
 float starSD(vec2 c) {
-  const float A = 0.31, Bc = 0.11, C = 0.012, K = 0.70710678;
-  float r1 = sdBox2(c, vec2(A - C)) - C;
-  float r2 = sdBox2(vec2(K * (c.x + c.y), K * (c.y - c.x)), vec2(A - C)) - C;
-  vec2 k = c - vec2(c.x > 0.0 ? 0.5 : -0.5, c.y > 0.0 ? 0.5 : -0.5);
-  float corner = sdBox2(vec2(K * (k.x + k.y), K * (k.y - k.x)), vec2(Bc)) - 0.25 * C;
-  return min(min(r1, r2), corner);
+  const float A = 0.31, Bc = 0.11, C = 0.012, K = 0.70710678;   // star size, corner diamond, rounding, cos 45
+  float r1 = sdBox2(c, vec2(A - C)) - C;                                            // square
+  float r2 = sdBox2(vec2(K * (c.x + c.y), K * (c.y - c.x)), vec2(A - C)) - C;        // square at 45 deg
+  vec2 k = c - vec2(c.x > 0.0 ? 0.5 : -0.5, c.y > 0.0 ? 0.5 : -0.5);                // nearest cell corner
+  float corner = sdBox2(vec2(K * (k.x + k.y), K * (k.y - k.x)), vec2(Bc)) - 0.25 * C; // corner diamond
+  return min(min(r1, r2), corner);                                                  // < 0 inside a hole
 }
+// Per-cell / per-pixel random number (fract-sin; one value per input, so no lattice pattern arises).
 float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 
 void main() {
-  vec2 uv = vUv * uCover.xy + uCover.zw;
+  vec2 uv = vUv * uCover.xy + uCover.zw;          // canvas -> image (cover-crop)
   vec3 A = lin(img(uA, uv).rgb);
   vec3 col;
   if (uMode < 0.5) {
+    // ---- D: morph through the shadow ----
     vec3 B = lin(img(uB, uv).rgb);
     float t = uT;
-    float kd = smoothstep(0.0, 0.2, t) * (1.0 - smoothstep(0.8, 1.0, t));   // the shade goes dark, then returns
-    float eA = 7.0 * smoothstep(0.08, 0.4, t);                              // A's light erodes
-    float eB = 7.0 * (1.0 - smoothstep(0.6, 0.92, t));                      // B's light blooms
-    float s = smoothstep(0.38, 0.62, t);                                    // pattern morph
+    // The shade goes dark first (0 -> 0.2) and comes back last (0.8 -> 1).
+    float kd = smoothstep(0.0, 0.2, t) * (1.0 - smoothstep(0.8, 1.0, t));
+    // A's lit patches shrink along their own geometry: the lit region is
+    // sdf < 0; adding eA (up to 7 mask px, 28 screen px at full size) erodes it.
+    float eA = 7.0 * smoothstep(0.08, 0.4, t);
+    // B's lit patches grow back from eroded (7 px) to their true edge.
+    float eB = 7.0 * (1.0 - smoothstep(0.6, 0.92, t));
+    // Between 0.38 and 0.62 the pattern itself morphs: a straight blend of
+    // the two signed distance fields moves every edge continuously from A's
+    // shapes to B's (the classic SDF morph; no cross-fade of pixels).
+    float s = smoothstep(0.38, 0.62, t);
     float f = mix(sdfAt(uMA, uv) + eA, sdfAt(uMB, uv) + eB, s);
+    // Antialiased edge: 0.6 mask px either side of the zero level.
     float aa = 0.6;
     float lit = 1.0 - smoothstep(-aa, aa, f);
+    // Inside the light: the images' own sunlit colour, lifted toward a warm
+    // sun colour mid-morph (sin peaks at s = 0.5) so the pattern reads as light.
     vec3 sunC = vec3(1.0, 0.86, 0.66);
     vec3 litC = mix(mix(A, B, s), sunC * 0.9, 0.55 * sin(3.14159 * s));
+    // Outside it: the image's shade (A before the midpoint, B after), darkened to ink by kd.
     vec3 shade = mix(t < 0.5 ? A : B, uInk, kd);
     col = mix(shade, litC, lit);
   } else if (uMode < 1.5) {
-    // Screen-space lattice, one cell per uCell of the short side.
+    // ---- Method: the carved screen's holes close one by one ----
+    // A square lattice in screen space: one cell per uCell of the height.
     vec2 p = vec2(vUv.x * uAspect, vUv.y) / uCell;
     vec2 cell = floor(p);
-    vec2 c = p - cell - 0.5;
-    float tau = 0.08 + 0.62 * hash(cell);                  // when this hole closes
+    vec2 c = p - cell - 0.5;                       // position in the cell, centred
+    // Each hole closes at its own moment tau (0.08..0.70) over 0.22 of progress.
+    float tau = 0.08 + 0.62 * hash(cell);
     float open = 1.0 - smoothstep(tau, tau + 0.22, uT);
+    // Open = the star's threshold moves from +0.75 (the "hole" covers the
+    // whole cell) to -0.32 (smaller than the star: nothing left).
     float thr = mix(-0.32, 0.75, open);
-    float hole = 1.0 - smoothstep(thr - 0.02, thr + 0.02, starSD(c));
-    col = mix(uInk, A, hole);
+    float hole = 1.0 - smoothstep(thr - 0.02, thr + 0.02, starSD(c));   // antialiased edge
+    col = mix(uInk, A, hole);                      // outside the hole: solid shade
   } else {
+    // ---- Night: two states blended in linear light (a lantern brightening),
+    // the whole courtyard emerging from the page's shade colour by uGain ----
     vec3 B = lin(img(uB, uv).rgb);
     col = mix(A, B, uT) * uGain + uInk * (1.0 - uGain);
   }
-  gl_FragColor = vec4(srgb(col), 1.0);
+  // Back to sRGB, dithered by +-half an 8-bit step so dark gradients do not band.
+  gl_FragColor = vec4(srgb(col) + (hash(gl_FragCoord.xy) - 0.5) / 255.0, 1.0);
 }`;
 
 const INK = [0.0056, 0.0070, 0.0086];     // --shade #0f1418 in linear light
@@ -125,7 +154,7 @@ export class Compositor {
 
   resize() {
     const r = this.canvas.getBoundingClientRect();
-    const cap = this.tier === "webgl" ? 1.5 : 1;
+    const cap = this.tier === "webgl" ? (this.maxDpr || 1.5) : 1;
     const dpr = Math.min(devicePixelRatio || 1, cap);
     const w = Math.max(1, Math.round(r.width * dpr)), h = Math.max(1, Math.round(r.height * dpr));
     if (this.canvas.width !== w || this.canvas.height !== h) { this.canvas.width = w; this.canvas.height = h; this.dirty = true; }

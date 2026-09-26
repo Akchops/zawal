@@ -33,8 +33,8 @@ for (const v of VIEWPORTS) {
     page.on("requestfailed", (r) => entry.network.push(`failed: ${r.url()} ${r.failure()?.errorText}`));
     page.on("response", (r) => { if (r.status() >= 400) entry.network.push(`${r.status()}: ${r.url()}`); });
     // SwiftShader is software GL: the normal and reduced-motion runs accept it
-    // (?forcegl) so WebGL paths are exercised; the no-WebGL run forces Canvas 2D.
-    const q = mode === "nogl" ? "?nogl" : mode === "nojs" ? "" : "?forcegl";
+    // (?forcegl&noguard) so WebGL paths are exercised; the no-WebGL run forces Canvas 2D.
+    const q = mode === "nogl" ? "?nogl" : mode === "nojs" ? "" : "?forcegl&noguard";
     await page.goto(base + "/" + q, { waitUntil: "load" });
     await page.waitForTimeout(2500);
     const film = mode === "normal" || mode === "nogl";

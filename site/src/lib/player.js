@@ -19,94 +19,140 @@ import { camUniform, cameraFrom, lerpCam } from "./camera.js";
 import { url as siteUrl } from "./paths.js";
 
 const SRGB = `
-// Images are stored top row first; uv here has y up.
+// Frames are uploaded top row first (WebGL ignores UNPACK_FLIP_Y for
+// ImageBitmaps), while uv here has y pointing up: flip v on every read.
 vec4 img(sampler2D s, vec2 uv) { return texture2D(s, vec2(uv.x, 1.0 - uv.y)); }
+
+// sRGB -> linear light. A cubic fit (max error ~0.2 %) of the exact piecewise
+// curve: cheaper than pow() and smooth, so no crease at the curve's joint.
 vec3 lin(vec3 c) { return c * (c * (c * 0.305306011 + 0.682171111) + 0.012522878); }
+
+// Linear -> sRGB, the inverse fit: a weighted sum of the 2nd, 4th and 8th
+// roots (three sqrt()s) approximates c^(1/2.4) with its toe; clamp keeps
+// blending overshoot from wrapping.
 vec3 srgb(vec3 c) {
   vec3 s1 = sqrt(c), s2 = sqrt(s1), s3 = sqrt(s2);
   return clamp(0.585122381 * s1 + 0.783140355 * s2 - 0.368262736 * s3, 0.0, 1.0);
 }`;
 
 // Heat shimmer over sunlit ground (the one ambient motion): a small vertical
-// displacement that grows toward the horizon line and with the brightness of
-// what is there, scaled by uShimmer (0 once the camera leaves the street).
+// displacement that grows toward the horizon line, scaled by uShimmer (0 once
+// the camera leaves the street).
 const SHIMMER = `
-uniform float uShimmer, uTime;
+uniform float uShimmer;   // 0..1: 1 on the street, fades to 0 by frame 46
+uniform float uTime;      // seconds, drives the ripple
 vec2 shimmer(vec2 uv) {
+  // Off the street, no displacement at all (and no texture-coordinate change).
   if (uShimmer <= 0.0) return uv;
+  // Where it happens: rises from the bottom of the frame (uv.y 0.02) to full
+  // strength at the road's far end near the horizon (0.35), then falls to
+  // nothing above it (0.5), so the facades and the sky stay still.
   float band = smoothstep(0.02, 0.35, uv.y) * (1.0 - smoothstep(0.35, 0.5, uv.y));
+  // What it looks like: two travelling ripples, fine (190 cycles per frame
+  // height) and finer (331), moving up at different speeds, the first bent
+  // sideways by a slow wave across x so the rows never line up.
   float w = sin(uv.y * 190.0 - uTime * 3.1 + sin(uv.x * 23.0 + uTime * 0.7) * 2.0)
           + 0.5 * sin(uv.y * 331.0 - uTime * 4.3 + uv.x * 41.0);
+  // How much: at most ~0.08 % of the frame height (about 1 px on a phone),
+  // vertical only, as hot air bends light.
   return uv + vec2(0.0, w * 0.00055 * band * uShimmer);
 }`;
 
+// The day (fixed camera, the sun moves): neighbouring frames blended.
 const TIME_FS = `
 precision mediump float;
-varying vec2 vUv;
-uniform sampler2D uA, uB;
-uniform float uT;
-uniform vec4 uCover;
+varying vec2 vUv;        // 0..1 across the canvas, y up
+uniform sampler2D uA;    // frame floor(f)
+uniform sampler2D uB;    // frame floor(f) + 1
+uniform float uT;        // fract(f): how far between them
+uniform vec4 uCover;     // uv scale (xy) and offset (zw) that crop the frame to cover the canvas
 ${SRGB}
 ${SHIMMER}
 void main() {
+  // Canvas uv -> frame uv (object-fit: cover), then the shimmer displacement.
   vec2 uv = shimmer(vUv * uCover.xy + uCover.zw);
-  // Blend in linear light: a shadow edge half way between two frames is half
-  // lit, as it would be in a longer exposure, not muddied as in sRGB.
+  // Blend in linear light: a shadow edge half way between two frames comes
+  // out half lit, as in a longer exposure, not muddied as an sRGB mix would.
   vec3 c = mix(lin(img(uA, uv).rgb), lin(img(uB, uv).rgb), uT);
   gl_FragColor = vec4(srgb(c), 1.0);
 }`;
 
+// The walk (the camera moves): both neighbouring frames are reprojected to
+// the camera between them using their depth maps, then blended.
 const CAMERA_FS = `
 precision highp float;
 varying vec2 vUv;
-uniform sampler2D uA, uB, uDA, uDB;
-uniform float uT;
-uniform vec4 uCover;
-uniform vec4 uCamT[4], uCamA[4], uCamB[4];   // pos,tanV | fwd,aspect | right,shift | up,0
-uniform vec2 uDepth;                          // ln(dmin), ln(dmax / dmin)
+uniform sampler2D uA, uB;        // colour of frames i and i+1
+uniform sampler2D uDA, uDB;      // their depth maps (log-encoded, 8-bit)
+uniform float uT;                // 0..1 between the two cameras
+uniform vec4 uCover;             // cover-crop, as in TIME_FS
+// Cameras, 4 x vec4 each: pos.xyz, tan(vfov/2) | fwd.xyz, aspect | right.xyz,
+// lens shift | up.xyz, 0. T = the in-between camera, A and B = the frames'.
+uniform vec4 uCamT[4], uCamA[4], uCamB[4];
+uniform vec2 uDepth;             // ln(0.25 m), ln(400 / 0.25): the depth encoding's range
 ${SRGB}
 ${SHIMMER}
 
-// The renderer's camera: image uv (y up) -> world ray direction, and back.
+// Image uv (y up) -> world ray direction, exactly as the renderer's camera:
+// sx, sy are the pixel's offsets on the image plane at distance 1, scaled by
+// the half-FOV tangent (c0.w) and aspect (c1.w); the lens shift (c2.w) moves
+// the image window up without tilting the camera (verticals stay vertical).
 vec3 rayDir(vec4 c0, vec4 c1, vec4 c2, vec4 c3, vec2 uv) {
   float sx = (uv.x * 2.0 - 1.0) * c0.w * c1.w;
   float sy = (uv.y * 2.0 - 1.0 + c2.w) * c0.w;
   return normalize(c1.xyz + c2.xyz * sx + c3.xyz * sy);
 }
+// World point -> image uv for a camera: the inverse of rayDir. z is the depth
+// along the camera's forward axis, floored at 1 mm so points behind the
+// camera cannot divide by zero (they land far outside 0..1 and are rejected).
 vec2 project(vec4 c0, vec4 c1, vec4 c2, vec4 c3, vec3 p) {
   vec3 v = p - c0.xyz;
   float z = max(dot(v, c1.xyz), 1e-3);
   return vec2((dot(v, c2.xyz) / z / (c0.w * c1.w) + 1.0) * 0.5,
               (dot(v, c3.xyz) / z / c0.w - c2.w + 1.0) * 0.5);
 }
+// Metres from a depth texel: the 8-bit value is log-encoded between 0.25 m
+// and 400 m (uDepth), which spends the precision near the camera, where
+// parallax is largest.
 float depthAt(sampler2D d, vec2 uv) { return exp(uDepth.x + img(d, uv).r * uDepth.y); }
 
 // Where does frame C see the surface that the in-between camera sees along
-// (o, dir)? Fixed-point iteration on the distance along the ray, started from
-// frame C's own depth at the same screen position (the frames are close).
-// Returns linear colour and a confidence weight (0 where C cannot see it:
-// outside its frame, or a disocclusion).
+// (o, dir)? Fixed-point iteration on the distance z along the ray: guess z,
+// project that point into C, read C's depth there, turn it back into a point
+// and take its distance along the ray as the next guess. Started from C's own
+// depth at the same screen position (the frames are close, so it converges in
+// a few steps). Returns linear colour and a confidence weight.
 vec4 fetchFrom(sampler2D col, sampler2D dep, vec4 c0, vec4 c1, vec4 c2, vec4 c3, vec3 o, vec3 dir, vec2 uv0) {
   vec2 uv = uv0;
   float z = depthAt(dep, uv0);
   for (int k = 0; k < 4; k++) {
-    uv = project(c0, c1, c2, c3, o + dir * z);
-    vec3 q = c0.xyz + rayDir(c0, c1, c2, c3, uv) * depthAt(dep, uv);
-    z = max(dot(q - o, dir), 0.05);
+    uv = project(c0, c1, c2, c3, o + dir * z);                      // guess -> C's image
+    vec3 q = c0.xyz + rayDir(c0, c1, c2, c3, uv) * depthAt(dep, uv);  // what C has there
+    z = max(dot(q - o, dir), 0.05);                                   // its distance along our ray (>= 5 cm)
   }
   uv = project(c0, c1, c2, c3, o + dir * z);
   vec3 q = c0.xyz + rayDir(c0, c1, c2, c3, uv) * depthAt(dep, uv);
+  // Residual: how far C's surface is from the point on our ray, relative to
+  // its distance (floored at 0.5 m so near surfaces are not over-trusted).
+  // Large where C sees something else there (a disocclusion).
   float err = length(q - (o + dir * z)) / max(z, 0.5);
+  // 1 inside C's frame, 0 outside it (step() is intended: outside is unknown).
   float inside = step(0.0, uv.x) * step(uv.x, 1.0) * step(0.0, uv.y) * step(uv.y, 1.0);
+  // Confidence falls off smoothly with the residual: 5 % error -> 0.05 weight.
   return vec4(lin(img(col, uv).rgb), inside * exp(-err * 60.0));
 }
 
 void main() {
   vec2 uv = shimmer(vUv * uCover.xy + uCover.zw);
+  // This pixel's ray from the in-between camera.
   vec3 o = uCamT[0].xyz;
   vec3 dir = rayDir(uCamT[0], uCamT[1], uCamT[2], uCamT[3], uv);
+  // What each neighbouring frame saw along it, and how sure each is.
   vec4 a = fetchFrom(uA, uDA, uCamA[0], uCamA[1], uCamA[2], uCamA[3], o, dir, uv);
   vec4 b = fetchFrom(uB, uDB, uCamB[0], uCamB[1], uCamB[2], uCamB[3], o, dir, uv);
+  // Blend by time AND confidence: where one frame cannot see the surface the
+  // other fills in. The 1e-4 floor keeps the sum non-zero where neither can
+  // (then it is the plain time blend).
   float wa = a.w * (1.0 - uT) + 1e-4 * (1.0 - uT), wb = b.w * uT + 1e-4 * uT;
   vec3 c = (a.rgb * wa + b.rgb * wb) / (wa + wb);
   gl_FragColor = vec4(srgb(c), 1.0);
@@ -265,7 +311,7 @@ export class SequencePlayer {
 
   resize() {
     const r = this.canvas.getBoundingClientRect();
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = Math.min(window.devicePixelRatio || 1, this.maxDpr || 2);
     const w = Math.max(1, Math.round(r.width * dpr)), h = Math.max(1, Math.round(r.height * dpr));
     if (this.canvas.width !== w || this.canvas.height !== h) {
       this.canvas.width = w;
@@ -290,7 +336,7 @@ export class SequencePlayer {
   draw(time = 0) {
     if (!this.dirty && this.shimmer <= 0) return;
     // A canvas that was hidden when the player started has no size yet.
-    const cw = Math.round(this.canvas.clientWidth * Math.min(window.devicePixelRatio || 1, 2));
+    const cw = Math.round(this.canvas.clientWidth * Math.min(window.devicePixelRatio || 1, this.maxDpr || 2));
     if (cw && Math.abs(cw - this.canvas.width) > 1) this.resize();
     const i0 = Math.floor(this.f), i1 = Math.min(i0 + 1, this.n - 1);
     let t = this.f - i0;
@@ -340,7 +386,9 @@ export class SequencePlayer {
     const ta = this.glTex(ka), tb = this.glTex(kb);
     const bm = this.bmp.get(ka);
     const imgAspect = bm.width / bm.height;
-    const da = this.mode === "camera" && this.progCam && ka.startsWith("hi") && kb.startsWith("hi") ? this.glTex(`dep:${i0}`) : null;
+    // this.cheap (set by the page on sustained frame drops) skips the depth
+    // reprojection for the plain blend: one tier down, same continuity.
+    const da = this.mode === "camera" && this.progCam && !this.cheap && ka.startsWith("hi") && kb.startsWith("hi") ? this.glTex(`dep:${i0}`) : null;
     const db = da ? this.glTex(`dep:${i1}`) : null;
     if (da && db && t > 0 && t < 1) {
       const { p, uni } = this.progCam;
