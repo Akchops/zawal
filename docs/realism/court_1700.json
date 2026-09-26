@@ -1,0 +1,10 @@
+{
+  "scene": "house", "camera": "court",
+  "width": 1600, "height": 900, "spp": 64,
+  "date": "2026-6-21", "localMinutes": 1020,
+  "lat": 25.2048, "lon": 55.2708,
+  "sunAltitudeDeg": 27.1518, "sunAzimuthDeg": 284.646,
+  "sunDir": [-0.860886, 0.456349, -0.224989],
+  "sunTransmittance": [0.425087, 0.33161, 0.230067],
+  "skyBuildSeconds": 0.261558, "renderSeconds": 353.636
+}
