@@ -1,0 +1,10 @@
+{
+  "scene": "qudra", "camera": "qudra",
+  "width": 1600, "height": 900, "spp": 40,
+  "date": "2026-6-21", "localMinutes": 820,
+  "lat": 24.84, "lon": 55.37,
+  "sunAltitudeDeg": 71.7901, "sunAzimuthDeg": 269.742,
+  "sunDir": [-0.312496, 0.949918, 0.00140612],
+  "sunTransmittance": [0.607057, 0.547331, 0.468232],
+  "skyBuildSeconds": 0.272908, "renderSeconds": 1103.54
+}
