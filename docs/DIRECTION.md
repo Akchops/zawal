@@ -289,6 +289,37 @@ What still reads as CG, and the Phase 2 fix for each:
 
 **Verdict on the biggest risk:** the renderer's light transport is not the weak link. The gap to photographic is dressing and weathering, which is scene work, and the render plan budgets time for it. If you want to see one of these fixes before approving, the fastest high-signal one is the weathering pass on the courtyard.
 
+### 9.2 Realism pass (after the Phase 1 review)
+
+Done in the order asked, **before** any sequence frame is rendered, so none of it has to be retrofitted. Evidence: `docs/realism/` (the same 7 frames: same cameras, same suns), `docs/realism/compare/` (before | after, side by side) and `docs/realism/details/` (close-ups at 100 %, where a crack or a lantern's shadow can actually be seen).
+
+| # | ask | what the renderer does now |
+|---|---|---|
+| 1 | **The street has an end** | A neighbour's lower wall (door recess, windows, coping) closes the west side; across the cross street, a far house with a gate on the camera's axis and a tree over its wall. A white saloon, and a saloon under a fitted dust cover. Two 7.6 m street lamps, a wall bracket, five sagging cables (real catenaries), a utility cabinet. Three ghaf trees. A pierced brass lantern by the gate whose star pattern the 07:30 sun prints on the facade. |
+| 2 | **Weathering everywhere** | Driven by geometry, not painted on: dust on everything that faces up; grit in corners and along wall feet (a local occlusion probe per sample); copper-green and grey run-off under every spout, sill and screen; tannin streaks under the teak beam ends; a rising-damp tide line with salt bloom; patch repairs in the limewash; craquelure patches (partial Voronoi networks, i.e. incomplete polygons, as real shrinkage cracking is); diagonal stress cracks with a branch off the top corners of openings; grey hand grime beside door jambs at palm height. |
+| 3 | **The floor** | Honed limestone in running bond (0.52 m courses, random lengths): per-slab tone and veining, 4 mm sandy joints recessed 1.8 mm, ±0.45 mm lippage and ±0.8 mm/m tilt per slab, pitting. Matte (GGX roughness 0.66), never polished. |
+| 4 | **The lantern** | A real pierced drum lantern: the star pattern wrapped seamlessly round the drum, a pierced dome, open bottom, rings, finial, loop, a frosted bulb on its socket, hung on a rod from the lattice. The sun reaches it only near noon, straight down, so the pattern that matters is the dome's: at zawal it prints a disc of small stars on the stone inside the canopy's larger stars. The gate lantern shows the side-on case: the drum's two walls print a doubled star pattern on the facade at 07:30. |
+| 5 | **The copper pool** | A true dielectric water surface (Fresnel reflection and refraction) over a wind-ripple height field. Caustics on the bottom come from the same height field (the refracted sun's irradiance through the ripple curvature), so a caustic net shimmers inside each of the canopy's stars. An even, deep verdigris lining and a weathered copper coping flush with the stone. |
+| 6 | **Everyday objects** | Two potted olive trees before the loggia piers (terracotta with salt bloom and a damp foot), a teak chair turned to the pool, a folded palm mat and a linen cushion on the bench, floor cushions (indigo, ochre, natural) and a rolled rug in the loggia, a brass tray table, a lathed water jar. |
+| + | Qudra | Footprints trodden along the paths under the roof (the ripples flattened there); a 4×4's twin ruts running out to the dunes; desert scrub; ghaf trees on the dunes; water jars and a mat by the benches. |
+
+**Ghaf tree: the detailed foliage passed my review, so the DIRECTION fallback is not used.** Leaflets of 1–2.5 cm in 2.8 cm cells, grouped into sprays by a noise field, on crooked limbs with drooping branchlets, grey-green with dust on their upper faces, and only faintly translucent. One trap found and fixed on the way: with a small fixed jitter, leaves sat on a visible 3D lattice wherever a crown thins out (the value-noise-lattice trap in a new place). Each leaf now moves as far from its cell centre as its own extent allows, which keeps the ray walk exact.
+
+**Renderer fixes found on the way (each verified):**
+- *Fireflies along cables and twigs.* The textbook ray–capsule solve lost all precision to cancellation far from the camera (normals of length 20–580). Ray–sphere, –capsule and –cylinder are now cancellation-free (cross-product forms). GGX sampling moved to visible normals (Heitz 2018).
+- *`-ffast-math` folds `x == x`.* NaN guards are now bit tests; non-finite samples are dropped, never averaged in.
+- *Pixel filter.* Gaussian, σ = 0.5 px (it was a box). This gives the slight softness of a real lens and sensor, removes the dithered look of sub-pixel leaves, and stops fine lattice edges shimmering on camera moves.
+- *Foliage 2.7× faster.* A two-level DDA over 8³-cell blocks and a precomputed leaf bitset give the same hits as the single-level walk on 10⁶ random rays.
+
+### 9.3 The long render: resumable, phone set first
+- `renderer/tools/plan_sequences.py` writes both sequences as data (`renderer/sequences/seq_a.json`, `seq_b.json`). Each frame records its minute, sun, camera and exposure, and the site reads the same files, so the HUD and the pixels share one source. SEQ-A is time-warped by how fast the canopy's pattern moves where it lands (3–7 minutes per frame). Zawal (12:20:42.5) is an exact frame, held for 6 frames, which are copies, not renders. SEQ-B is a centripetal Catmull-Rom walk through 8 waypoints; frames that eye adaptation pushes brighter get up to 3× the samples, so the dark passage is not noise.
+- `renderer/tools/render_seq.py` renders, denoises, grades and exports each frame to its WebP tiers, drops the float buffers, and **commits and pushes every 6 frames**. A frame counts as done only when all of its tiers exist, so any rerun skips it and a session timeout costs one chunk (about 15 minutes) at most.
+- **Order:** (1) SEQ-B frame 0, the first beat → (2) SEQ-B portrait, even frames (49, the phone tier) → (3) SEQ-A portrait, even frames (61) → *the build and phone QA start here* → (4) SEQ-B and SEQ-A landscape (desktop) → (5) portrait odd frames (tablets held in portrait use the phone tier until these land).
+- **Estimates at 32 spp:** phone set ≈ 4 h; desktop set ≈ 12 h; tablet-portrait fill ≈ 4 h; stills and C/D buffers ≈ 3 h.
+
+### 9.4 The first beat on a phone
+Before the street is fully visible, a phone downloads the HTML document and SEQ-B frame 0. The document carries inline critical CSS, the boot script and a 208-byte blurred poster, so the street's shape paints from the first response; its budget is ≤ 14 kB gzip, measured in Phase 3. Frame 0 is a 720×1280 WebP; its measured size is added here once the realism-pass portrait frame is rendered. Fonts, GSAP and the rest of the sequence load after first paint and never block the picture.
+
 ---
 
 ## 10. Honesty, SEO, fallbacks (unchanged from the brief, restated as build rules)
@@ -301,7 +332,7 @@ What still reads as CG, and the Phase 2 fix for each:
 
 ## 11. Biggest risks
 1. **Render realism** (the brief's biggest risk). See §9.1 for the frank read.
-2. **Vegetation.** The Ghaf House needs a convincing old ghaf tree. Leaves are the hardest thing for a procedural renderer. Plan: a leaf-cell foliage primitive (3D-DDA through cells holding tiny leaflets, so dappled light is made of real sun-spots). If it fails my own review, the Ghaf House hero is framed from inside the house with the tree as a dappled shadow on limewash, which is honest and still beautiful.
+2. **Vegetation.** *Update after the realism pass: the leaf-cell foliage passed review (see §9.2); the fallback is not needed.* The Ghaf House needs a convincing old ghaf tree. Leaves are the hardest thing for a procedural renderer. Plan: a leaf-cell foliage primitive (3D-DDA through cells holding tiny leaflets, so dappled light is made of real sun-spots). If it fails my own review, the Ghaf House hero is framed from inside the house with the tree as a dappled shadow on limewash, which is honest and still beautiful.
 3. **C next to A.** The live relight sits in the same frame as the path-traced day, so any quality drop is visible. The baked indirect basis exists to prevent that; the hand-off happens at dusk, where bounce light is weakest.
 4. **Phone weight and memory.** About 6 MB of imagery on phones (measured, §8), streamed progressively; iOS Safari memory is respected per the ladder+window budget. Real-phone testing is still required (see the "only a real phone can prove" list at delivery).
 5. **Render time** (≈ 14–20 h of wall-clock on this 4-core container). Mitigated by background rendering during the build, with the spp and frame-count fallbacks above.
