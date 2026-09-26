@@ -318,7 +318,7 @@ Done in the order asked, **before** any sequence frame is rendered, so none of i
 - **Estimates at 32 spp:** phone set ≈ 4 h; desktop set ≈ 12 h; tablet-portrait fill ≈ 4 h; stills and C/D buffers ≈ 3 h.
 
 ### 9.4 The first beat on a phone
-Before the street is fully visible, a phone downloads the HTML document and SEQ-B frame 0. The document carries inline critical CSS, the boot script and a 208-byte blurred poster, so the street's shape paints from the first response; its budget is ≤ 14 kB gzip, measured in Phase 3. Frame 0 is a 720×1280 WebP; its measured size is added here once the realism-pass portrait frame is rendered. Fonts, GSAP and the rest of the sequence load after first paint and never block the picture.
+Before the street is fully visible, a phone downloads the HTML document and SEQ-B frame 0. The document carries inline critical CSS, the boot script and a 208-byte blurred poster, so the street's shape paints from the first response; its budget is ≤ 14 kB gzip, to be confirmed on the built page in Phase 3. Frame 0, measured on the realism-pass portrait frame, is **16.5 kB** as a 720×1280 WebP at q72 (13.7 kB at q60; AVIF is no smaller here, 17.5 kB). **So a phone downloads ≈ 30 kB before the street is fully visible**, and ~14 kB before its blurred shape is. Fonts, GSAP and the rest of the sequence load after first paint and never block the picture. On desktop, frame 0 is 37.5 kB at 1600×900 (24.8 kB at 1280×720).
 
 ---
 
