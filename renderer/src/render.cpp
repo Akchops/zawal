@@ -27,6 +27,7 @@
 #include "materials.h"
 #include "noise.h"
 #include "scenes.h"
+#include "projects.h"
 #include "sky.h"
 #include "sun.h"
 
@@ -384,6 +385,10 @@ static bool cameraPreset(const std::string& name, CameraDesc& c) {
   if (name == "street_p") { c.pos = V3(16.2f, 1.62f, 8.6f); c.target = V3(11.6f, 1.62f, -20.0f); c.hfovDeg = 64.0f; c.shiftY = 0.30f; return true; }
   // Close look at the street ghaf (diagnostic).
   if (name == "tree") { c.pos = V3(15.2f, 1.62f, -0.5f); c.target = V3(21.0f, 3.2f, -6.2f); c.hfovDeg = 60.0f; c.level = false; return true; }
+  // Project heroes (signature D).
+  if (name == "ghaf") { c.pos = V3(-1.9f, 1.6f, 5.2f); c.target = V3(14.0f, 1.6f, 8.8f); c.hfovDeg = 82.0f; c.shiftY = 0.34f; return true; }
+  if (name == "sikka") { c.pos = V3(1.5f, 1.6f, 7.5f); c.target = V3(-2.6f, 1.6f, -6.0f); c.hfovDeg = 82.0f; c.shiftY = 0.72f; return true; }
+  if (name == "mushrif") { c.pos = V3(6.3f, 1.45f, 0.75f); c.target = V3(3.4f, 1.15f, 16.0f); c.hfovDeg = 84.0f; c.shiftY = 0.14f; return true; }
   if (name == "qudra") { c.pos = V3(-3.0f, 1.5f, 17.2f); c.target = V3(14.0f, 1.5f, -4.0f); c.hfovDeg = 80.0f; c.shiftY = 0.24f; return true; }
   if (name == "qudra_p") { c.pos = V3(-13.5f, 1.55f, 12.5f); c.target = V3(6.0f, 1.55f, -6.0f); c.hfovDeg = 62.0f; c.shiftY = 0.3f; return true; }
   return false;
@@ -411,6 +416,9 @@ int main(int argc, char** argv) {
   sc.nightLamps = a.count("lights") > 0;
   if (sceneName == "house") buildHouse(sc);
   else if (sceneName == "qudra") buildQudra(sc);
+  else if (sceneName == "ghaf") buildGhafHouse(sc);
+  else if (sceneName == "sikka") buildSikka(sc);
+  else if (sceneName == "mushrif") buildMushrif(sc);
   else { std::fprintf(stderr, "unknown scene %s\n", sceneName.c_str()); return 2; }
   // Lights: only the groups asked for (--lights 1,3); none by default.
   {
@@ -461,6 +469,26 @@ int main(int argc, char** argv) {
   AtmosphereParams ap;
   if (sceneName == "qudra") { ap.aod = 0.45f; ap.angstrom = 0.2f; }   // inland desert: more, coarser dust
   if (a.count("aod")) ap.aod = std::atof(a["aod"].c_str());
+  if (a.count("suntable")) {
+    // Direct-sun transmittance by altitude from this atmosphere (the live
+    // relight's sun colour): JSON rows [alt, r, g, b], sun irradiance at
+    // normal incidence relative to top-of-atmosphere 1.0.
+    AtmosphereParams apT;
+    if (sceneName == "qudra") { apT.aod = 0.45f; apT.angstrom = 0.2f; }
+    std::printf("[");
+    for (int k = 0; k <= 90; k++) {
+      Sky s;
+      s.P = apT;
+      float al = k * PI / 180.0f;
+      V3 dir(0.0f, std::sin(al), -std::cos(al));
+      float tR, tM, tO; bool blocked;
+      s.opticalDepthToTop(V3(0.0f, Sky::Re + 2.0f, 0.0f), dir, tR, tM, tO, blocked);
+      V3 T = s.transmittance(tR, tM, tO);
+      std::printf("%s[%d,%.6f,%.6f,%.6f]", k ? "," : "", k, T.x, T.y, T.z);
+    }
+    std::printf("]\n");
+    return 0;
+  }
   Sky sky;
   if (a.count("nightglow")) std::sscanf(a["nightglow"].c_str(), "%f,%f,%f", &sky.nightGlow.x, &sky.nightGlow.y, &sky.nightGlow.z);
   auto t0 = std::chrono::steady_clock::now();

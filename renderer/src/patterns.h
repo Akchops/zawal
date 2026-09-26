@@ -33,6 +33,8 @@ struct PatternParams {
   float ou = 0.0f, ov = 0.0f;          // origin offset in the plane
   float rot = 0.0f;                    // rotation of the pattern in the plane, radians
   float discR = 0.0f;                  // >0: clip to a disc of this radius (centred on ou,ov)
+  float shu = 0.0f, shv = 0.0f;        // lattice only: holes carved at an angle, pattern shift
+                                       // per metre of depth (from the slab's lo face)
   float ringW = 0.0f;                  // rim beam width when clipped to a disc
 };
 

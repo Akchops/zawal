@@ -322,9 +322,18 @@ struct Scene {
     if (a0 > tmax || a1 < tmin) return false;
     const PatternParams& pat = patterns[p.pattern];
     int ax = p.axis, ua = (ax + 1) % 3, va = (ax + 2) % 3;
+    // Angled carving: the pattern is sampled at (u - shu*depth, v - shv*depth).
+    const float base = p.lo[ax];
+    auto sdAt = [&](const V3& x) { float d = x[ax] - base; return patternSD(pat, x[ua] - pat.shu * d, x[va] - pat.shv * d); };
+    auto wallN = [&](const V3& x) {
+      float d = x[ax] - base, gu, gv;
+      patternGrad(pat, x[ua] - pat.shu * d, x[va] - pat.shv * d, gu, gv);
+      V3 n(0.0f); n[ua] = -gu; n[va] = -gv; n[ax] = pat.shu * gu + pat.shv * gv;
+      return normalize(n);
+    };
     float t = std::max(a0, tmin);
     V3 q = r.o + r.d * t;
-    float sd = patternSD(pat, q[ua], q[va]);
+    float sd = sdAt(q);
     if (sd > 0.0f) {
       if (a0 >= tmin) {
         h.t = a0;
@@ -335,11 +344,11 @@ struct Scene {
       // Started inside solid: offset ray from a hole wall that went the wrong
       // way. Treat as occluded right here.
       h.t = tmin; h.face = -2;
-      float gu, gv; patternGrad(pat, q[ua], q[va], gu, gv);
-      V3 n(0.0f); n[ua] = -gu; n[va] = -gv; h.n = n;
+      h.n = wallN(q);
       return true;
     }
-    float s2 = std::sqrt(r.d[ua] * r.d[ua] + r.d[va] * r.d[va]);
+    const float du = r.d[ua] - pat.shu * r.d[ax], dv = r.d[va] - pat.shv * r.d[ax];
+    float s2 = std::sqrt(du * du + dv * dv);   // speed through the (sheared) pattern plane
     if (s2 < 1e-6f) return false;  // straight through a hole, parallel to its walls
     float tEnd = std::min(a1, tmax);
     for (int i = 0; i < 96; i++) {
@@ -349,12 +358,10 @@ struct Scene {
       t += step;
       if (t >= tEnd) return false;
       q = r.o + r.d * t;
-      sd = patternSD(pat, q[ua], q[va]);
+      sd = sdAt(q);
       if (sd > -2e-5f) {
         h.t = t; h.face = -2;
-        float gu, gv; patternGrad(pat, q[ua], q[va], gu, gv);
-        V3 n(0.0f); n[ua] = -gu; n[va] = -gv;   // wall faces back into the hole
-        h.n = n;
+        h.n = wallN(q);   // wall faces back into the hole
         (void)anyHit;
         return true;
       }
@@ -637,7 +644,8 @@ struct Scene {
     int ax = p.axis, ua = (ax + 1) % 3, va = (ax + 2) % 3;
     float half = 0.5f * (p.hi[ax] - p.lo[ax]), mid = 0.5f * (p.hi[ax] + p.lo[ax]);
     float slabD = std::fabs(x[ax] - mid) - half;
-    float solid = -patternSD(pat, x[ua], x[va]);
+    float dd = x[ax] - p.lo[ax];
+    float solid = -patternSD(pat, x[ua] - pat.shu * dd, x[va] - pat.shv * dd);
     return smax(slabD, solid, 1.2f * p.bevel);
   }
 
@@ -647,7 +655,9 @@ struct Scene {
     float reach = 2.6f * p.bevel;
     if (p.type == P_LATTICE) {
       int ax = p.axis, ua = (ax + 1) % 3, va = (ax + 2) % 3;
-      float sd = std::fabs(patternSD(patterns[p.pattern], x[ua], x[va]));
+      const PatternParams& pat = patterns[p.pattern];
+      float dd = x[ax] - p.lo[ax];
+      float sd = std::fabs(patternSD(pat, x[ua] - pat.shu * dd, x[va] - pat.shv * dd));
       bool nearFace = std::fabs(x[ax] - p.lo[ax]) < reach || std::fabs(x[ax] - p.hi[ax]) < reach;
       return nearFace && sd < reach * 1.5f;
     }

@@ -47,6 +47,8 @@ enum MaterialId : int {
   M_SOIL,           // planter soil
   M_LENS,           // frosted luminaire lens
   M_COPPER_DEEP,    // pool lining: deep, even verdigris
+  M_CORAL,          // coral-stone walls under a worn lime render (old Deira)
+  M_BOOKS,          // a wall of book spines on teak shelves
   M_COUNT
 };
 
@@ -685,6 +687,62 @@ inline BSDF matCopperDeep(V3 p, V3 n) {
   return b;
 }
 
+inline BSDF matCoral(V3 p, V3 n, uint32_t seed) {
+  BSDF b;
+  float s = (seed & 1023) * 0.113f;
+  // Lime render worn back to the coral stone in large irregular patches; the
+  // stone is porous (dark pits), the render warm and chalky.
+  float wear = fbm(p * 0.9f + V3(s), 4) + 0.35f * fbm(p * 3.1f + V3(2.0f, s, 5.0f), 3);
+  // Patches are few and small (the render is maintained), mostly low down
+  // where hands, carts and splash wear it back.
+  float lowWear = 0.22f * (1.0f - smoothstep(0.3f, 2.2f, p.y));
+  float exposed = smoothstep(0.27f, 0.39f, wear + lowWear);
+  V3 render = lerp(hex(0xE6D9C1), hex(0xDCCBAD), 0.5f + 0.5f * fbm(p * 1.7f + V3(s), 3));
+  V3 stone = lerp(hex(0xD2C2A6), hex(0xC4B192), 0.5f + 0.5f * gnoise(p * 9.0f + V3(s)));
+  float pits = smoothstep(0.25f, 0.45f, gnoise(p * 55.0f + V3(s * 3.0f)));
+  stone *= 1.0f - 0.22f * pits;
+  V3 a = lerp(render, stone, exposed);
+  a *= 1.0f + 0.04f * gnoise(p * 140.0f);
+  float foot = 1.0f - smoothstep(0.0f, 0.9f, p.y);
+  a = lerp(a, a * hex(0xC4AE8C) * 1.2f, 0.6f * foot);
+  b.albedo = a;
+  b.f0 = V3(0.03f); b.alpha = 0.85f; b.metal = 0.0f;
+  b.n = bump(n, p, 0.0012f, 1.0f, [](V3 q) {
+    float w = fbm(q * 0.9f, 4);
+    float lw = 0.22f * (1.0f - smoothstep(0.3f, 2.2f, q.y));
+    return -0.004f * smoothstep(0.27f, 0.39f, w + lw) + 0.0015f * gnoise(q * 18.0f) - 0.0012f * smoothstep(0.25f, 0.45f, gnoise(q * 55.0f));
+  });
+  return b;
+}
+
+inline BSDF matBooks(V3 p, V3 n) {
+  BSDF b;
+  // Shelves every 0.38 m; within a shelf, spines of random width (2-6 cm),
+  // height and colour, and dark gaps above the shorter books.
+  float y = p.y, row = std::floor(y / 0.38f), fy = y - row * 0.38f;
+  float u = std::fabs(n.x) > std::fabs(n.z) ? p.z : p.x;
+  float acc = 0.0f, w = 0.0f; uint32_t h = 0; int k = 0;
+  float start = std::floor(u / 0.9f) * 0.9f;               // restart every 0.9 m: a shelf bay
+  uint32_t bay = hash2i((int)std::floor(u / 0.9f), (int)row);
+  acc = start;
+  for (k = 0; k < 40; k++) {
+    h = pcg(bay + (uint32_t)k * 2654435761u);
+    w = 0.02f + 0.04f * hashf(h);
+    if (acc + w > u) break;
+    acc += w;
+  }
+  static const uint32_t cols[8] = {0x8C5A3C, 0xB08D57, 0x3F4E5E, 0x6B6B5A, 0xC9B79A, 0x7A3E2E, 0x4E5B45, 0x9A8F80};
+  V3 a = hex(cols[pcg(h) & 7u]) * (0.8f + 0.35f * hashf(h ^ 0x5bd1e995u));
+  float top = 0.22f + 0.13f * hashf(h ^ 0x27d4eb2du);
+  float edge = std::min(u - acc, acc + w - u);               // gutter between spines
+  if (fy < 0.025f) a = hex(0x6E4A30);                         // the shelf board
+  else if (fy > top) a *= 0.18f;                              // the dark back of the shelf
+  a *= 1.0f - 0.5f * (1.0f - smoothstep(0.0f, 0.003f, edge));
+  b.albedo = a;
+  b.f0 = V3(0.035f); b.alpha = 0.7f; b.metal = 0.0f; b.n = n;
+  return b;
+}
+
 // ---- weathering ---------------------------------------------------------------------
 // Applied on top of every opaque material at the camera-visible vertex.
 // Everything is driven by geometry the scene already knows: which way a surface
@@ -817,7 +875,7 @@ inline void applyStains(const Scene& sc, BSDF& b, V3 p, V3 ng) {
 
 inline void applyWeather(BSDF& b, int mat, V3 p, const ShadeCtx& c) {
   if (b.dielectric || b.thin) return;
-  bool plaster = mat == M_LIME || mat == M_LIME_SHADE;
+  bool plaster = mat == M_LIME || mat == M_LIME_SHADE || mat == M_CORAL;
   bool masonry = plaster || mat == M_RAMMED || mat == M_STONE;
   // 1. Dust on anything that faces up and is not the floor itself.
   float up = b.n.y;
@@ -881,6 +939,8 @@ inline BSDF shadeMaterial(int mat, V3 p, V3 n, const ShadeCtx& c) {
     case M_WATER: return matWater(p, n);
     case M_SAND: b = matSand(p, n); break;
     case M_STREET: b = matStreet(p, n); break;
+    case M_CORAL: b = matCoral(p, n, seed); break;
+    case M_BOOKS: b = matBooks(p, n); break;
     case M_TERRACOTTA: b = matTerracotta(p, n); break;
     case M_PALM: b = matPalm(p, n); break;
     case M_BRONZE: b = matBronze(p, n); break;
@@ -924,6 +984,8 @@ inline BSDF shadeMaterialLite(int mat, V3 p, V3 n, const ShadeCtx& c) {
     case M_TEAK_GREY: b.albedo = hex(0x978E7E); b.alpha = 0.75f; return b;
     case M_SAND: b.albedo = hex(0xD29F6C) * (1.0f + v); b.alpha = 0.95f; return b;
     case M_STREET: b.albedo = hex(0xD0BC9C) * (1.0f + v); b.alpha = 0.92f; return b;
+    case M_CORAL: b.albedo = hex(0xD2BF9E) * (1.0f + v); b.alpha = 0.85f; return b;
+    case M_BOOKS: b.albedo = hex(0x7A6650) * (1.0f + v); b.alpha = 0.7f; return b;
     case M_TERRACOTTA: b.albedo = hex(0xB06A45); return b;
     case M_PALM: b.albedo = hex(0xB89C6B); return b;
     case M_BARK: b.albedo = hex(0x6E6155); return b;
