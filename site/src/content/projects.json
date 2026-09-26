@@ -1,0 +1,86 @@
+[
+  {
+    "slug": "ghaf-house",
+    "name": "Ghaf House",
+    "place": "Jumeirah",
+    "year": "2021",
+    "status": "Completed 2021",
+    "type": "Private house",
+    "size": "540 m²",
+    "hour": "16:10",
+    "minutes": 970,
+    "pattern": "dapple",
+    "patternName": "the ghaf's dappled shade",
+    "line": "A family house wrapped around an old ghaf tree that was on the plot before the house.",
+    "fact": "Courtyard in shade for 11 hours on 21 June.",
+    "text": [
+      "The ghaf (Prosopis cineraria) was older than the neighbourhood. The house was planned around it: four wings, one courtyard, and the tree in the middle, its crown lifted clear of the roofs.",
+      "The Shade Study showed that the tree and the west wing together keep the courtyard floor in shade from 06:40 to 17:40 on the longest day. Rooms open onto it on every side."
+    ],
+    "facts": [["Location", "Jumeirah, Dubai"], ["Completed", "2021"], ["Area", "540 m²"], ["Shade", "11 h on 21 June"], ["Structure", "Limestone, lime render, teak"]],
+    "details": ["The tree's shade on the limewash", "The west loggia at 16:10"]
+  },
+  {
+    "slug": "hotel-sikka",
+    "name": "Hotel Sikka",
+    "place": "Deira",
+    "year": "2023",
+    "status": "Completed 2023",
+    "type": "Hotel, 24 rooms",
+    "size": "2,900 m²",
+    "hour": "09:40",
+    "minutes": 580,
+    "pattern": "slats",
+    "patternName": "palm-rib slats",
+    "line": "Twenty-four rooms along two sikkas, the narrow shaded lanes of old Deira, with a wind tower at their meeting point.",
+    "fact": "The lanes are 1.8 m wide and 9 m high: in shade all morning.",
+    "text": [
+      "Rooms are stacked either side of two lanes, 1.8 m wide and 9 m high. At street level the lanes are in shade until almost noon, and cooled by the wind tower where they meet.",
+      "Over the lanes, a lattice of palm-rib slats cuts the high sun into lines that move across the walls through the day."
+    ],
+    "facts": [["Location", "Deira, Dubai"], ["Completed", "2023"], ["Rooms", "24"], ["Area", "2,900 m²"], ["Structure", "Coral-stone render, palm-rib slats, teak"]],
+    "details": ["The sikka at 09:40", "The wind tower's shaft"]
+  },
+  {
+    "slug": "qudra-canopy",
+    "name": "Qudra Canopy",
+    "place": "Al Qudra",
+    "year": "2019",
+    "status": "Completed 2019",
+    "type": "Public shade structure",
+    "size": "40 m roof",
+    "hour": "13:40",
+    "minutes": 820,
+    "pattern": "triangles",
+    "patternName": "triangles of light",
+    "line": "A 40 m lattice roof in the desert, with no walls. Its shadow is the building.",
+    "fact": "1,250 m² of shade on seven columns.",
+    "text": [
+      "A roof of deep triangular ribs, 40 m across, on seven bronze columns, with no walls, no doors and no floor but the sand.",
+      "A second, finer lattice sits on the ribs. From below it reads as lace. On the sand it turns into a field of small triangles of light that drift across the ground as the day turns. People come for the shade, and stay for the pattern."
+    ],
+    "facts": [["Location", "Al Qudra, Dubai"], ["Completed", "2019"], ["Span", "40 m"], ["Shade", "1,250 m²"], ["Structure", "GRC lattice on bronze columns"]],
+    "details": ["Under the roof at 13:40", "The infill lattice from below"]
+  },
+  {
+    "slug": "mushrif-reading-rooms",
+    "name": "Mushrif Reading Rooms",
+    "place": "Mushrif",
+    "year": "2026",
+    "status": "Completing 2026",
+    "type": "Public library rooms",
+    "size": "1,600 m²",
+    "hour": "16:30",
+    "minutes": 990,
+    "pattern": "carved",
+    "patternName": "carved stars",
+    "line": "Reading rooms behind screens carved 45 cm deep, so only the low sun gets through.",
+    "fact": "At noon the screens pass no direct sun at all.",
+    "text": [
+      "The screens are 45 cm deep: carved stone, star upon star. At noon they pass no direct sun at all, only the glow off their own sides.",
+      "In the late afternoon the sun lines up with the carving, and for about forty minutes the reading tables are covered in stars."
+    ],
+    "facts": [["Location", "Mushrif, Dubai"], ["Status", "Completing 2026"], ["Area", "1,600 m²"], ["Screens", "45 cm carved stone"], ["Direct sun at noon", "None"]],
+    "details": ["The reading room at 16:30", "A screen, edge on"]
+  }
+]

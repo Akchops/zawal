@@ -70,16 +70,16 @@ inline float carBody(V3 p, float* lowerOut = nullptr, float* cabinOut = nullptr)
   // Lower body: long rounded box, a touch of plan taper at the nose and tail.
   float taper = 1.0f - 0.05f * smoothstep(1.6f, 2.3f, std::fabs(p.x));
   V3 q(p.x, p.y - 0.64f, p.z / taper);
-  float lower = sdRoundBox(q, V3(2.3f, 0.34f, 0.89f), 0.16f);
+  float lower = sdRoundBox(q, V3(2.3f, 0.34f, 0.89f), 0.1f);
   // Glasshouse: shorter, narrower, raked front and rear by shearing x with y.
   float yy = p.y - 1.14f;
   float shear = p.x + 0.55f * yy * (p.x > -0.1f ? 1.0f : -0.7f);
   float narrow = 1.0f + 0.22f * smoothstep(0.0f, 0.3f, yy);
   V3 c(shear + 0.18f, yy, p.z * narrow);
-  float cabin = sdRoundBox(c, V3(1.18f, 0.26f, 0.76f), 0.2f);
+  float cabin = sdRoundBox(c, V3(1.18f, 0.26f, 0.76f), 0.14f);
   if (lowerOut) *lowerOut = lower;
   if (cabinOut) *cabinOut = cabin;
-  float body = smin(lower, cabin, 0.16f);
+  float body = smin(lower, cabin, 0.12f);
   // Wheel arches.
   for (float ax : {-1.42f, 1.38f}) {
     float arch = sdCylZ(V3(p.x - ax, p.y - 0.33f, p.z), 0.41f, 1.2f);
@@ -110,13 +110,22 @@ inline float sdfCar(V3 p, int* slot) {
   return std::min(b, w);
 }
 inline float sdfCarCover(V3 p, uint32_t seed, int* slot) {
-  // A fitted fabric cover: the body inflated by 3 cm, draped down to 20 cm
-  // above the road, with loose folds (low-frequency noise, smooth).
-  float b = carBody(p) - 0.035f;
-  float hem = p.y - 0.2f;
-  float cover = smax(b, -hem, 0.04f);
-  float folds = 0.012f * gnoise(V3(p.x * 2.6f, p.y * 4.0f, p.z * 2.6f) + V3((float)(seed & 255)));
-  cover += folds * smoothstep(0.2f, 0.9f, p.y);
+  // A fitted fabric cover pulled taut over the car. Fabric in tension bridges
+  // concave angles, so the cover spans the hollow at the windscreen and rear
+  // window (a wide blend between body and cabin) and hangs straight past the
+  // wheel arches (the arch-free body), but keeps the car's convex shoulders;
+  // 1.5 cm proud. Drape folds run down the flanks, pleats gather at the
+  // elastic hem, and the roof and bonnet carry a few shallow wind ripples.
+  float lower, cabin;
+  carBody(p, &lower, &cabin);
+  float cover = smax(smin(lower, cabin, 0.32f) - 0.015f, 0.22f - p.y, 0.02f);
+  float sd = (float)(seed & 255);
+  float flank = smoothstep(0.55f, 0.85f, std::fabs(p.z)) * (1.0f - smoothstep(0.8f, 1.05f, p.y));
+  float drape = gnoise(V3(p.x * 4.5f + sd, p.y * 0.7f, p.z * 4.5f));
+  float pleat = std::sin(p.x * 38.0f + 3.0f * gnoise(V3(p.x * 2.0f, 0.0f, p.z * 2.0f) + V3(sd))) *
+                (1.0f - smoothstep(0.22f, 0.36f, p.y));
+  float top = gnoise(V3(p.x * 1.8f, p.y * 1.8f, p.z * 3.5f) + V3(sd + 7.0f)) * smoothstep(0.9f, 1.2f, p.y);
+  cover += 0.012f * drape * flank - 0.004f * pleat - 0.006f * top;
   float w = carWheels(p);
   if (slot) *slot = w < cover ? SLOT2 : SLOT0;
   return std::min(cover, w);

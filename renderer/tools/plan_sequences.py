@@ -165,10 +165,14 @@ def plan_b():
         (0, street0, yaw_of(street0, [10.4, 1.62, -20.0]) % 360.0, 76.0, 0.46, 1.0),
         (36, [15.2, 1.62, 0.9], 196.0, 76.0, 0.42, 1.0),
         (48, [14.1, 1.62, -1.5], 228.0, 78.0, 0.36, 1.2),
-        (60, [12.7, 1.62, GC], 268.0, 80.0, 0.30, 2.2),
-        (72, [8.2, 1.62, GC], 270.0, 80.0, 0.28, 3.6),
-        (80, [4.9, 1.61, GC], 285.0, 82.0, 0.26, 3.9),
-        (86, [3.6, 1.59, -1.7], 360.0, 84.0, 0.24, 3.2),
+        # Into the passage: dark, the eye adapting (exposure pushed, but it
+        # must still read as shade, not as a lit room).
+        (60, [12.7, 1.62, GC], 268.0, 80.0, 0.30, 1.8),
+        (72, [8.4, 1.62, GC], 270.0, 80.0, 0.28, 2.2),
+        # The turn: the opening to the courtyard glows on the left and pulls
+        # the camera round toward it, so the turn happens looking at light.
+        (80, [5.5, 1.61, GC + 0.05], 296.0, 82.0, 0.26, 2.3),
+        (86, [3.62, 1.59, -1.75], 360.0, 84.0, 0.24, 1.9),
         (96, COURT["pos"], 360.0, 84.0, 0.22, 1.2),
     ]
     # Unwrap headings so each segment turns the short way (-168 and 192 are
@@ -180,29 +184,32 @@ def plan_b():
         while y - way[k - 1][2] < -180.0:
             y += 360.0
         way[k] = (way[k][0], way[k][1], y) + tuple(way[k][3:])
-    unwrapped = [way[0]]
-    for k in range(1, len(way)):
-        unwrapped.append(way[k])
     n = 97
     minutes = [7 * 60 + 30 + 30.0 * i / (n - 1) for i in range(n)]
 
+    # Portrait starts on the approved portrait street composition (street_p)
+    # and joins the common path by frame 36.
+    street0_p = [16.2, 1.62, 8.6]
+    way_p = [(0, street0_p, yaw_of(street0_p, [11.6, 1.62, -20.0]) % 360.0) + tuple(way[0][3:])] + way[1:]
+
     def at(i, portrait):
-        for k in range(len(way) - 1):
-            fa, fb = way[k][0], way[k + 1][0]
+        way_ = way_p if portrait else way
+        for k in range(len(way_) - 1):
+            fa, fb = way_[k][0], way_[k + 1][0]
             if fa <= i <= fb:
                 t = (i - fa) / (fb - fa)
-                p0 = way[max(k - 1, 0)][1]
-                p1, p2 = way[k][1], way[k + 1][1]
-                p3 = way[min(k + 2, len(way) - 1)][1]
+                p0 = way_[max(k - 1, 0)][1]
+                p1, p2 = way_[k][1], way_[k + 1][1]
+                p3 = way_[min(k + 2, len(way_) - 1)][1]
                 pos = catmull(p0, p1, p2, p3, t) if p1 != p2 else list(p1)
                 s = t * t * (3 - 2 * t)
-                ya, yb = way[k][2], way[k + 1][2]
+                ya, yb = way_[k][2], way_[k + 1][2]
                 yaw = ya + (yb - ya) * s
-                fov = way[k][3] + (way[k + 1][3] - way[k][3]) * s
-                shift = way[k][4] + (way[k + 1][4] - way[k][4]) * s
-                ev = way[k][5] + (way[k + 1][5] - way[k][5]) * s
+                fov = way_[k][3] + (way_[k + 1][3] - way_[k][3]) * s
+                shift = way_[k][4] + (way_[k + 1][4] - way_[k][4]) * s
+                ev = way_[k][5] + (way_[k + 1][5] - way_[k][5]) * s
                 return pos, yaw, fov, shift, ev
-        return way[-1][1], way[-1][2], way[-1][3], way[-1][4], way[-1][5]
+        return way_[-1][1], way_[-1][2], way_[-1][3], way_[-1][4], way_[-1][5]
 
     out = {"id": "B", "title": "Street to courtyard", "date": "2026-06-21", "tz": "+04:00"}
     for name in ("landscape", "portrait"):

@@ -1,0 +1,58 @@
+{
+  "name": "ZAWAL",
+  "arabic": "زوال",
+  "tagline": "Architecture measured in shade.",
+  "founded": 2013,
+  "people": 31,
+  "home": "A converted warehouse in Al Quoz, Dubai",
+  "honesty": "ZAWAL is a fictional studio. This site is a design demonstration.",
+  "honestyShort": "Fictional studio · design demonstration",
+  "credit": "Made by Aarav Chopra",
+  "contact": {
+    "email": "studio@zawal.example",
+    "phone": "+971 4 000 0000",
+    "phoneHref": "+97140000000",
+    "address": ["Al Quoz", "Dubai"],
+    "note": "Contact details are placeholders, on purpose."
+  },
+  "definition": {
+    "word": "zawal",
+    "arabic": "زوال",
+    "text": "the moment the sun crosses its highest point, when shadows are shortest."
+  },
+  "founders": [
+    {
+      "name": "Leila Haddad",
+      "role": "Architect, founding partner. Leads design.",
+      "from": "Beirut, then London",
+      "quote": "We draw the shadow first. The walls are what is left over.",
+      "portrait": "Trained in Beirut and London. Draws every project first as a shadow plan: where the shade will be at nine, at noon, at four, and only then where the walls must go to put it there. Keeps a courtyard's worth of sketchbooks on the warehouse mezzanine."
+    },
+    {
+      "name": "Tomas Ekberg",
+      "role": "Daylight engineer, partner. Leads the Shade Study.",
+      "from": "Gothenburg",
+      "quote": "Light is a material. In Dubai it is the heaviest one.",
+      "portrait": "Came from Gothenburg, where the problem is too little sun, and stayed for the opposite one. Writes the solar models the studio designs with, and checks every screen, canopy and overhang against the real sun before it is drawn in detail."
+    }
+  ],
+  "services": [
+    { "name": "Architecture", "line": "Houses, hotels and public rooms, designed from their shade outward." },
+    { "name": "Interiors", "line": "Rooms tuned to the light they get at each hour, and the materials that hold it." },
+    { "name": "Courtyards & landscape", "line": "Outdoor rooms that stay usable in June: canopy, water, planting, wind." },
+    { "name": "Shade & daylight studies", "line": "The Shade Study as a stand-alone commission, for architects and developers." }
+  ],
+  "method": {
+    "name": "The Shade Study",
+    "line": "Every project starts with one drawing: the shadows the site receives on 21 June, hour by hour. The gaps between them become the building.",
+    "steps": [
+      "We survey the site and its neighbours, and model everything that casts a shadow.",
+      "We plot the shade the site receives on the longest day, every hour from sunrise to sunset.",
+      "We design the building into the gaps, then test every screen and overhang against the real sun."
+    ]
+  },
+  "studioText": [
+    "Thirty-one people in a converted warehouse in Al Quoz: architects, interior designers, a landscape architect and two daylight engineers.",
+    "The warehouse keeps its steel roof trusses and a new lattice ceiling, cut from the studio's own shade drawings. At 12:20 in June its floor is covered in small stars."
+  ]
+}

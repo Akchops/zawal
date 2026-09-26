@@ -1,0 +1,183 @@
+/* ZAWAL — tokens, type, base. The site lives in the shade: dark by default. */
+
+@font-face {
+  font-family: "Archivo";
+  src: url("/fonts/archivo-var.woff2") format("woff2");
+  font-weight: 200 600;
+  font-stretch: 100% 125%;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Plex Mono";
+  src: url("/fonts/plex-mono-400.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Plex Mono";
+  src: url("/fonts/plex-mono-500.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Plex Arabic";
+  src: url("/fonts/plex-arabic-300.woff2") format("woff2");
+  font-weight: 300;
+  font-display: swap;
+}
+
+:root {
+  --shade: #0f1418;        /* Deep Shade: ground */
+  --noon: #f7f3ea;         /* Noon White: text on shade */
+  --sand: #e6dac6;         /* Limewash Sand: light sections */
+  --dust: #8c857a;         /* secondary text, hairlines */
+  --copper: #5e9483;       /* the one accent */
+  --copper-deep: #36604f;  /* copper on sand */
+  --hair: rgba(140, 133, 122, 0.35);
+  --ink: var(--noon);
+  --ground: var(--shade);
+
+  --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-text: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --f-mono: "Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --f-arabic: "Plex Arabic", "Geeza Pro", "Noto Naskh Arabic", serif;
+
+  --s-wordmark: clamp(44px, 9vw, 160px);
+  --s-statement: clamp(34px, 6vw, 104px);
+  --s-head: clamp(26px, 3.4vw, 56px);
+  --s-body: clamp(17px, 1.1vw, 18px);
+  --s-hud: 12px;
+
+  --gutter: 24px;
+  --margin: clamp(16px, 4vw, 56px);
+  --ease-ui: cubic-bezier(0.2, 0, 0, 1);
+  --beat: 700px;
+  color-scheme: dark;
+}
+@media (max-width: 767px) {
+  :root { --gutter: 16px; --beat: 420px; --s-hud: 11px; }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; background: var(--shade); }
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--f-text);
+  font-size: var(--s-body);
+  line-height: 1.53;
+  font-stretch: 100%;
+  font-weight: 400;
+  font-feature-settings: "kern", "liga", "calt";
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: clip;
+}
+img, canvas, svg, video { display: block; max-width: 100%; }
+a { color: inherit; }
+button { font: inherit; color: inherit; }
+::selection { background: var(--copper); color: var(--shade); }
+:focus-visible { outline: 2px solid var(--copper); outline-offset: 3px; }
+
+.wordmark {
+  font-family: var(--f-display);
+  font-size: var(--s-wordmark);
+  font-stretch: 125%;
+  font-weight: 300;
+  line-height: 0.86;
+  letter-spacing: 0.02em;
+  margin: 0;
+}
+.statement {
+  font-family: var(--f-display);
+  font-size: var(--s-statement);
+  font-stretch: 125%;
+  font-weight: 300;
+  line-height: 0.98;
+  letter-spacing: -0.005em;
+  margin: 0;
+  text-wrap: balance;
+}
+.head {
+  font-family: var(--f-display);
+  font-size: var(--s-head);
+  font-stretch: 118%;
+  font-weight: 300;
+  line-height: 1.05;
+  margin: 0;
+  text-wrap: balance;
+}
+.body { max-width: 38ch; }
+.body p { margin: 0 0 1em; }
+.mono {
+  font-family: var(--f-mono);
+  font-size: var(--s-hud);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+.dust { color: var(--dust); }
+.ar { font-family: var(--f-arabic); font-weight: 300; }
+
+/* Links: an underline that is a thin shadow sliding in from the sun's side. */
+.link {
+  text-decoration: none;
+  background: linear-gradient(currentColor, currentColor) 0 100% / 0 1px no-repeat;
+  transition: background-size 200ms var(--ease-ui), color 200ms var(--ease-ui);
+}
+.link:hover, .link:focus-visible { background-size: 100% 1px; }
+.cta {
+  display: inline-block;
+  padding: 14px 20px;
+  border: 1px solid var(--copper);
+  color: var(--noon);
+  text-decoration: none;
+  font-family: var(--f-mono);
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: background-color 200ms var(--ease-ui), color 200ms var(--ease-ui);
+}
+.cta:hover, .cta:focus-visible { background: var(--copper); color: var(--shade); }
+
+.visually-hidden {
+  position: absolute !important; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+
+/* Light "paper" sections (Shade Study sheet, Studio). */
+.on-sand { --ink: var(--shade); --ground: var(--sand); background: var(--sand); color: var(--shade); }
+.on-sand .cta { color: var(--shade); border-color: var(--copper-deep); }
+.on-sand .cta:hover { background: var(--copper-deep); color: var(--sand); }
+.on-sand :focus-visible { outline-color: var(--copper-deep); }
+.on-sand .dust { color: #6e675d; }
+
+/* The eclipse: page transitions through a lattice-shadow mask. */
+@view-transition { navigation: auto; }
+::view-transition-old(root) { animation: 700ms cubic-bezier(0.6, 0, 0.3, 1) both eclipse-out; }
+::view-transition-new(root) { animation: 700ms cubic-bezier(0.6, 0, 0.3, 1) both eclipse-in; }
+/* The mask strip is [solid | band of shrinking stars | empty], kept at its own
+   aspect (height = viewport), and slid across: the old page leaves through
+   the lattice's shadow, the new one arrives through it. */
+@keyframes eclipse-out {
+  from { -webkit-mask-position: 0% 0; mask-position: 0% 0; }
+  to { -webkit-mask-position: 100% 0; mask-position: 100% 0; }
+}
+@keyframes eclipse-in {
+  from { -webkit-mask-position: 100% 0; mask-position: 100% 0; }
+  to { -webkit-mask-position: 0% 0; mask-position: 0% 0; }
+}
+::view-transition-old(root), ::view-transition-new(root) {
+  -webkit-mask-image: url("/img/eclipse-mask.svg");
+  mask-image: url("/img/eclipse-mask.svg");
+  -webkit-mask-size: auto 100%;
+  mask-size: auto 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+  *, *::before, *::after { scroll-behavior: auto !important; }
+}

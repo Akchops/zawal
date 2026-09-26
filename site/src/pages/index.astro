@@ -1,0 +1,177 @@
+---
+import Base from "../layouts/Base.astro";
+import studio from "../content/studio.json";
+import copy from "../content/copy.json";
+import projects from "../content/projects.json";
+
+const c = copy.home;
+// Beat map of the film (DIRECTION.md §6). Units: beats (700 px desktop, 420 px phone).
+const B = { walkEnd: 4, dayEnd: 9.5, handEnd: 10, sunEnd: 12, studyEnd: 14, workEnd: 22, methodEnd: 23.5, studioEnd: 25, nightEnd: 26.5 };
+const still = (name, alt) => ({ name, alt });
+const heroSrcset = "/img/hero/b000-p720.webp 720w, /img/hero/b000-p1080.webp 1080w, /img/hero/b000-p1440.webp 1440w";
+---
+<Base
+  title={c.title}
+  page="home"
+  preload={[{ href: "/img/hero/b000-p1080.webp", srcset: heroSrcset, sizes: "(orientation: portrait) 100vw, 1px" },
+            { href: "/img/hero/b000-l1600.webp", srcset: "/img/hero/b000-l1600.webp 1600w, /img/hero/b000-l2560.webp 2560w", sizes: "(orientation: landscape) 100vw, 1px" }]}
+>
+  <section class="film" data-film data-beats={B.nightEnd} aria-label="One day in a courtyard house, 21 June, Dubai">
+    <div class="stage" data-stage>
+      <div class="screen" aria-hidden="true">
+        <picture class="first">
+          <source media="(orientation: portrait)" srcset={heroSrcset} sizes="100vw" />
+          <img src="/img/hero/b000-l1600.webp" srcset="/img/hero/b000-l1600.webp 1600w, /img/hero/b000-l2560.webp 2560w" sizes="100vw"
+               alt="" width="1600" height="900" fetchpriority="high" decoding="async" />
+        </picture>
+        <canvas class="seq" data-seq="b"></canvas>
+        <canvas class="seq" data-seq="a" hidden></canvas>
+        <div class="grade" data-grade></div>
+      </div>
+
+      <div class="hud mono" data-hud aria-live="off">
+        <span data-hud-date>21·06</span>
+        <span data-hud-time>07:30:00</span>
+        <span class="hud-sun"><svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="3.2" /></svg><span data-hud-alt>24.66°</span> / <span data-hud-az>74.5°</span></span>
+        <span data-hud-shadow>shadow 2.17 × h</span>
+      </div>
+
+      <!-- Shots: in film mode they are captions over the stage; without JS or
+           with reduced motion they become a long-form article, each with its still. -->
+      <div class="shot shot-cold" data-shot data-from="0" data-to="0.55" data-sun="74.5">
+        <picture class="still"><source media="(orientation: portrait)" srcset="/img/posters/b000-p.webp" /><img src="/img/posters/b000-l.webp" alt="The east facade of a limewashed house at 07:30, the low sun full on it, a pierced brass lantern by the gate, a quiet street with parked cars and a ghaf tree." loading="eager" width="1600" height="900" /></picture>
+        <div class="cap cap-cold">
+          <p class="mono kicker">{c.coldOpen.kicker}</p>
+          <h1 class="wordmark" data-reveal>ZAWAL</h1>
+          <p class="tagline" data-reveal>{studio.tagline}</p>
+          <p class="mono hint" data-hint>{c.coldOpen.scrollHint} <span aria-hidden="true">↓</span></p>
+        </div>
+      </div>
+
+      <div class="shot" data-shot data-from="0.45" data-to="1.5" data-sun="74.5">
+        <picture class="still"><source media="(orientation: portrait)" srcset="/img/posters/b030-p.webp" /><img src="/img/posters/b030-l.webp" alt="Walking north up the street in the morning sun, the facade blazing on the left." loading="lazy" width="1600" height="900" /></picture>
+        <div class="cap cap-low"><p class="statement" data-reveal>{c.street}</p></div>
+      </div>
+
+      <div class="shot" data-shot data-from="1.5" data-to="2.5" data-sun="75">
+        <picture class="still"><source media="(orientation: portrait)" srcset="/img/posters/b052-p.webp" /><img src="/img/posters/b052-l.webp" alt="Turning into the gate recess: the teak doors folded back, the dark passage beyond." loading="lazy" width="1600" height="900" /></picture>
+        <div class="cap cap-low"><p class="statement" data-reveal>{c.gate}</p></div>
+      </div>
+
+      <div class="shot shot-define" data-shot data-from="2.5" data-to="3.55" data-sun="76">
+        <picture class="still"><source media="(orientation: portrait)" srcset="/img/posters/b072-p.webp" /><img src="/img/posters/b072-l.webp" alt="The bent passage: limewashed walls in deep shade, sun patches on the floor from the gate behind." loading="lazy" width="1600" height="900" /></picture>
+        <div class="cap cap-define">
+          <p class="define-word"><span data-reveal>{studio.definition.word}</span> <span class="ar" lang="ar" data-reveal>{studio.arabic}</span></p>
+          <p class="define-text" data-reveal>{studio.definition.text}</p>
+        </div>
+      </div>
+
+      <div class="shot" data-shot data-from="3.5" data-to="6.0" data-sun="77">
+        <picture class="still"><source media="(orientation: portrait)" srcset="/img/posters/a000-p.webp" /><img src="/img/posters/a000-l.webp" alt="08:00 in the courtyard: the lattice canopy's stars stretched across the west wall, the floor still in shade." loading="lazy" width="1600" height="900" /></picture>
+        <div class="cap cap-low">
+          <p class="mono dust" data-reveal>08:00</p>
+          <p class="head" data-reveal>{c.morning}</p>
+        </div>
+      </div>
+
+      <div class="shot shot-zawal" data-shot data-from="6.0" data-to="7.5" data-sun="180">
+        <picture class="still"><source media="(orientation: portrait)" srcset="/img/posters/a048-p.webp" /><img src="/img/posters/a048-l.webp" alt="12:20:42, zawal: the sun almost overhead, the canopy's stars fall straight down onto the floor and the pool." loading="lazy" width="1600" height="900" /></picture>
+        <div class="cap cap-zawal">
+          <p class="zawal-time" data-reveal>{c.zawalTitle}</p>
+          <p class="head" data-reveal>{c.zawal}</p>
+        </div>
+      </div>
+
+      <div class="shot" data-shot data-from="7.5" data-to="9.5" data-sun="285">
+        <picture class="still"><source media="(orientation: portrait)" srcset="/img/posters/a100-p.webp" /><img src="/img/posters/a100-l.webp" alt="Late afternoon: the pattern has climbed the east wall; the west wall shades the floor." loading="lazy" width="1600" height="900" /></picture>
+        <div class="cap cap-low"><p class="head" data-reveal>{c.afternoon}</p></div>
+      </div>
+
+      <div class="shot shot-hand" data-shot data-from="9.4" data-to="10.0" data-sun="292">
+        <picture class="still"><source media="(orientation: portrait)" srcset="/img/posters/a120-p.webp" /><img src="/img/posters/a120-l.webp" alt="18:50, dusk: the courtyard gone blue, the last light on the top of the far wall." loading="lazy" width="1600" height="900" /></picture>
+        <div class="cap cap-mid"><p class="statement" data-reveal>{c.handover}</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="after" aria-label="Work">
+    <div class="work-list">
+      {projects.map((p) => (
+        <a class="work-item" href={`/work/${p.slug}/`}>
+          <span class="mono dust">{p.place} · {p.year}</span>
+          <span class="head">{p.name}</span>
+          <span class="body">{p.line}</span>
+        </a>
+      ))}
+    </div>
+  </section>
+
+  <script>
+    import "../lib/home.js";
+  </script>
+</Base>
+
+<style>
+  /* ---------- film mode (JS, motion allowed) ---------- */
+  :global(html.js:not(.rm)) .film { position: relative; }
+  :global(html.js:not(.rm)) .stage { position: sticky; top: 0; height: 100vh; height: 100svh; overflow: hidden; }
+  :global(html.js:not(.rm)) .screen { position: absolute; inset: 0; background: var(--shade); }
+  :global(html.js:not(.rm)) .first img, :global(html.js:not(.rm)) .seq {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+  }
+  :global(html.js:not(.rm)) .seq[hidden] { display: none; }
+  :global(html.js:not(.rm)) .still { display: none; }
+  :global(html.js:not(.rm)) .shot { position: absolute; inset: 0; pointer-events: none; }
+  :global(html.js:not(.rm)) .shot .cap { visibility: hidden; }
+  :global(html.js:not(.rm)) .shot.on .cap { visibility: visible; }
+  .grade { position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(180deg, rgba(15, 20, 24, 0.38) 0%, rgba(15, 20, 24, 0) 26%, rgba(15, 20, 24, 0) 58%, rgba(15, 20, 24, 0.55) 100%); }
+
+  .cap { position: absolute; left: var(--margin); right: var(--margin); color: var(--noon); text-shadow: 0 1px 24px rgba(15, 20, 24, 0.35); }
+  .cap-cold { top: 22svh; }
+  .cap-low { bottom: calc(64px + env(safe-area-inset-bottom)); max-width: 17em; }
+  .cap-mid { top: 38svh; max-width: 14em; }
+  .cap-define { top: 30svh; max-width: 26em; }
+  .cap-zawal { bottom: calc(64px + env(safe-area-inset-bottom)); max-width: 20em; }
+  .kicker { margin: 0 0 18px; color: rgba(247, 243, 234, 0.8); }
+  .tagline { font-family: var(--f-display); font-stretch: 112%; font-weight: 300; font-size: clamp(19px, 2.2vw, 30px); margin: 18px 0 0; }
+  .hint { position: absolute; top: calc(78svh - 22svh); margin: 0; color: rgba(247, 243, 234, 0.75); }
+  .define-word { font-family: var(--f-display); font-stretch: 125%; font-weight: 300; font-size: var(--s-statement); line-height: 1; margin: 0 0 18px; font-style: italic; }
+  .define-word .ar { font-style: normal; font-size: 0.8em; margin-left: 0.25em; }
+  .define-text { font-size: clamp(19px, 2vw, 28px); line-height: 1.35; margin: 0; max-width: 22em; }
+  .zawal-time { font-family: var(--f-mono); font-size: clamp(40px, 8vw, 120px); letter-spacing: 0.02em; line-height: 1; margin: 0 0 12px; font-variant-numeric: tabular-nums; }
+
+  .hud {
+    position: absolute; z-index: 3; right: var(--margin); bottom: max(12px, env(safe-area-inset-bottom));
+    display: flex; gap: 14px; flex-wrap: wrap; justify-content: flex-end;
+    color: rgba(247, 243, 234, 0.86); mix-blend-mode: difference;
+  }
+  .hud-sun { display: inline-flex; align-items: center; gap: 5px; }
+  .hud svg { width: 11px; height: 11px; fill: var(--copper); }
+  @media (max-width: 767px) {
+    .hud { left: var(--margin); right: var(--margin); bottom: calc(28px + env(safe-area-inset-bottom)); justify-content: space-between; gap: 8px; }
+    .hud [data-hud-shadow] { display: none; }
+  }
+
+  /* shade-edge reveal: a hard edge at the sun's angle, scrubbed by scroll */
+  :global(html.js:not(.rm)) [data-reveal] {
+    display: inline-block;
+    clip-path: polygon(0 -20%, calc(var(--r, 0) * 140% + var(--k, 12%)) -20%, calc(var(--r, 0) * 140% - var(--k, 12%)) 120%, 0 120%);
+  }
+  :global(html.js:not(.rm)) [data-sunside="west"] [data-reveal] {
+    clip-path: polygon(100% -20%, calc(100% - var(--r, 0) * 140% - var(--k, 12%)) -20%, calc(100% - var(--r, 0) * 140% + var(--k, 12%)) 120%, 100% 120%);
+  }
+
+  /* ---------- static mode (no JS, or reduced motion): a long-form article ---------- */
+  :global(html:not(.js)) .screen, :global(html.rm) .screen { display: none; }
+  :global(html:not(.js)) .hud, :global(html.rm) .hud { display: none; }
+  :global(html:not(.js)) .shot, :global(html.rm) .shot { position: relative; margin: 0 0 12vh; }
+  :global(html:not(.js)) .still img, :global(html.rm) .still img { width: 100%; height: auto; }
+  :global(html:not(.js)) .cap, :global(html.rm) .cap { position: relative; inset: auto; padding: 28px var(--margin) 0; text-shadow: none; max-width: 40em; }
+  :global(html:not(.js)) .hint, :global(html.rm) .hint { display: none; }
+  :global(html:not(.js)) .shot-cold, :global(html.rm) .shot-cold { padding-top: 64px; }
+
+  .after { position: relative; z-index: 4; background: var(--shade); padding: 18vh var(--margin); }
+  .work-list { display: grid; gap: 48px; }
+  .work-item { display: grid; gap: 8px; text-decoration: none; border-top: 1px solid var(--hair); padding-top: 20px; }
+</style>

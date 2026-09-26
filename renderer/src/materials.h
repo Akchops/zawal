@@ -540,9 +540,11 @@ inline BSDF matTerracotta(V3 p, V3 n) {
   // down; the foot stays dark where it sits in damp.
   V3 a = lerp(hex(0xB06A45), hex(0xC2865C), smoothstep(-0.3f, 0.4f, fbm(p * 1.7f + V3(9.0f), 3)));
   a *= 1.0f + 0.08f * fbm(p * 6.0f, 3);
-  float low = 1.0f - smoothstep(0.12f, 0.55f, p.y);
-  float bloom = smoothstep(0.0f, 0.45f, fbm(p * V3(3.0f, 7.0f, 3.0f) + V3(4.0f), 4) + 0.25f * low - 0.08f);
-  a = lerp(a, hex(0xDCD2BF), 0.6f * bloom * (0.35f + 0.65f * low));
+  // The bloom is a haze wicked up from the damp foot, thinning with height and
+  // broken into vertical streaks where water ran; never blotches.
+  float low = 1.0f - smoothstep(0.06f, 0.42f, p.y);
+  float streak = 0.5f + 0.5f * fbm(V3(p.x * 7.0f, p.y * 1.1f, p.z * 7.0f) + V3(4.0f), 3);
+  a = lerp(a, hex(0xD8CDB8), 0.4f * smoothstep(0.05f, 0.95f, low * (0.45f + 0.55f * streak)));
   a *= 1.0f - 0.28f * (1.0f - smoothstep(0.01f, 0.09f, p.y));
   b.albedo = a; b.f0 = V3(0.035f); b.alpha = 0.85f; b.metal = 0.0f;
   b.n = bump(n, p, 0.0006f, 1.0f, [](V3 q) { return 0.0003f * gnoise(q * 40.0f); });

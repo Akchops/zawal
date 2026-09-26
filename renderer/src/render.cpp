@@ -380,7 +380,7 @@ int main(int argc, char** argv) {
     for (int x = 0; x < W; x++) {
       if (x < cx0 || x >= cx0 + cw) continue;
       V3 c(0.0f), al(0.0f), nm(0.0f);
-      float dp = 0.0f, sv = 0.0f;
+      float dp = INF, sv = 0.0f;
       for (int s = 0; s < set.spp; s++) {
         // Seed depends on pixel and sample only — not on the frame — so a fixed
         // camera scrubbed through time keeps a stable noise pattern (no boil).
@@ -402,7 +402,9 @@ int main(int argc, char** argv) {
         c += li;
         al += aov.albedo;
         nm += aov.normal;
-        dp += aov.depth;
+        // Nearest first-hit distance, not the mean: a pixel on a silhouette
+        // belongs to the foreground, which is what view reprojection needs.
+        dp = std::min(dp, aov.depth);
         sv += aov.sunvis;
       }
       float inv = 1.0f / set.spp;
@@ -411,7 +413,7 @@ int main(int argc, char** argv) {
       albedo[i * 3 + 0] = al.x * inv; albedo[i * 3 + 1] = al.y * inv; albedo[i * 3 + 2] = al.z * inv;
       V3 n = nm * inv;
       normal[i * 3 + 0] = n.x; normal[i * 3 + 1] = n.y; normal[i * 3 + 2] = n.z;
-      depth[i] = dp * inv;
+      depth[i] = dp;
       sunvis[i] = sv * inv;
     }
 #pragma omp atomic

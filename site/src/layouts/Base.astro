@@ -1,0 +1,137 @@
+---
+import "../styles/global.css";
+import studio from "../content/studio.json";
+import copy from "../content/copy.json";
+
+interface Props {
+  title: string;
+  description?: string;
+  page?: string;
+  preload?: { href: string; srcset?: string; sizes?: string }[];
+}
+const { title, description = copy.home.description, page = "", preload = [] } = Astro.props;
+---
+<!doctype html>
+<html lang="en" data-page={page}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <!-- A design demonstration for a fictional studio: never indexed, never followed. -->
+    <meta name="robots" content="noindex, nofollow, noarchive, nosnippet" />
+    <meta name="googlebot" content="noindex, nofollow" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="theme-color" content="#0F1418" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="icon" href="/img/favicon.svg" type="image/svg+xml" />
+    <link rel="preload" href="/fonts/archivo-var.woff2" as="font" type="font/woff2" crossorigin />
+    {preload.map((p) => (
+      <link rel="preload" as="image" href={p.href} imagesrcset={p.srcset} imagesizes={p.sizes} fetchpriority="high" />
+    ))}
+    <script is:inline>
+      document.documentElement.classList.add("js");
+      if (matchMedia("(prefers-reduced-motion: reduce)").matches) document.documentElement.classList.add("rm");
+    </script>
+  </head>
+  <body>
+    <a class="skip mono" href="#main">Skip to content</a>
+    <header class="nav" data-nav>
+      <a class="nav-mark" href="/" aria-label="ZAWAL, home">ZAWAL</a>
+      <nav aria-label="Main">
+        <ul class="nav-list">
+          {copy.nav.map((n) => <li><a class="link mono" href={n.href}>{n.label}</a></li>)}
+        </ul>
+      </nav>
+      <button class="nav-toggle mono" aria-expanded="false" aria-controls="menu" data-menu-toggle>Menu</button>
+    </header>
+    <div class="menu" id="menu" hidden data-menu>
+      <ul>
+        <li><a href="/">The Day</a></li>
+        {copy.nav.map((n) => <li><a href={n.href}>{n.label}</a></li>)}
+      </ul>
+      <p class="mono dust">{studio.honestyShort}</p>
+    </div>
+
+    <main id="main">
+      <slot />
+    </main>
+
+    <footer class="footer">
+      <div class="footer-grid">
+        <p class="footer-mark">ZAWAL <span class="ar" lang="ar">{studio.arabic}</span></p>
+        <address class="mono">
+          <a class="link" href={`mailto:${studio.contact.email}`}>{studio.contact.email}</a><br />
+          <a class="link" href={`tel:${studio.contact.phoneHref}`}>{studio.contact.phone}</a><br />
+          {studio.contact.address.join(", ")}
+        </address>
+        <p class="honesty">{studio.honesty}</p>
+        <p class="mono dust credit">{studio.credit} · {studio.contact.note}</p>
+      </div>
+    </footer>
+
+    <!-- The persistent honesty mark, on every page. -->
+    <p class="fiction-mark mono" aria-hidden="true">{studio.honestyShort}</p>
+
+    <script>
+      import "../lib/chrome.js";
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  .skip { position: fixed; left: 12px; top: -60px; z-index: 100; background: var(--noon); color: var(--shade); padding: 8px 12px; text-decoration: none; }
+  .skip:focus { top: 12px; }
+  .nav {
+    position: fixed; inset: 0 0 auto 0; z-index: 40;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: max(14px, env(safe-area-inset-top)) var(--margin) 14px;
+    pointer-events: none;
+    mix-blend-mode: difference;
+  }
+  .nav a, .nav button { pointer-events: auto; color: #f7f3ea; }
+  .nav-mark {
+    font-family: var(--f-display); font-stretch: 125%; font-weight: 400; font-size: 17px;
+    letter-spacing: 0.14em; text-decoration: none;
+  }
+  .nav-list { display: flex; gap: 28px; list-style: none; margin: 0; padding: 0; }
+  .nav-toggle { display: none; background: none; border: 0; padding: 10px 0 10px 16px; cursor: pointer; }
+  @media (max-width: 767px) {
+    .nav-list { display: none; }
+    .nav-toggle { display: block; }
+  }
+  .menu {
+    position: fixed; inset: 0; z-index: 60; background: var(--shade);
+    padding: 96px var(--margin) 40px; display: flex; flex-direction: column; justify-content: space-between;
+  }
+  .menu[hidden] { display: none; }
+  .menu ul { list-style: none; margin: 0; padding: 0; }
+  .menu li a {
+    display: block; font-family: var(--f-display); font-stretch: 125%; font-weight: 300;
+    font-size: clamp(34px, 11vw, 64px); line-height: 1.15; text-decoration: none; color: var(--noon);
+  }
+  .menu.open li { clip-path: inset(0 100% 0 0); animation: menu-sweep 520ms var(--ease-ui) forwards; }
+  .menu.open li:nth-child(2) { animation-delay: 60ms; }
+  .menu.open li:nth-child(3) { animation-delay: 120ms; }
+  .menu.open li:nth-child(4) { animation-delay: 180ms; }
+  .menu.open li:nth-child(5) { animation-delay: 240ms; }
+  @keyframes menu-sweep { to { clip-path: inset(0 0 0 0); } }
+  .rm .menu.open li { animation: none; clip-path: none; }
+
+  .fiction-mark {
+    position: fixed; left: max(12px, env(safe-area-inset-left)); bottom: max(10px, env(safe-area-inset-bottom));
+    z-index: 50; margin: 0; font-size: 10.5px; letter-spacing: 0.08em;
+    color: rgba(247, 243, 234, 0.72); mix-blend-mode: difference; pointer-events: none;
+  }
+  .footer { position: relative; z-index: 5; background: var(--shade); border-top: 1px solid var(--hair); padding: 64px var(--margin) 72px; }
+  .footer-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 24px var(--gutter); align-items: end; }
+  .footer-mark { grid-column: 1 / span 5; margin: 0; font-family: var(--f-display); font-stretch: 125%; font-weight: 300; font-size: clamp(34px, 5vw, 72px); line-height: 1; }
+  .footer-mark .ar { font-size: 0.55em; margin-left: 0.3em; color: var(--dust); }
+  .footer address { grid-column: 7 / span 3; font-style: normal; line-height: 2; }
+  .honesty { grid-column: 1 / span 6; margin: 0; font-size: 17px; }
+  .credit { grid-column: 7 / span 6; margin: 0; }
+  @media (max-width: 767px) {
+    .footer-grid { grid-template-columns: 1fr; }
+    .footer-mark, .footer address, .honesty, .credit { grid-column: 1; }
+  }
+</style>
