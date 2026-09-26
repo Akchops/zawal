@@ -82,18 +82,39 @@ def export(master, stem, kind):
 
 
 def sun_mask(raw, W, H, dst):
+    """The morph's mask: the signed distance to the edge of the sunlit area at
+    1/4 size, grey (R = G = B), lightly smoothed first so the morph moves
+    whole patches of light rather than pixel noise."""
     sv = np.fromfile(os.path.join(raw, "sunvis.f32"), np.float32).reshape(H, W)
     m = sv.reshape(H // 4, 4, W // 4, 4).mean(axis=(1, 3))
+    m = ndimage.gaussian_filter(m, 0.9)
     lit = m > 0.5
     d = ndimage.distance_transform_edt(~lit) - ndimage.distance_transform_edt(lit)
     r = np.clip(128 + d * 4, 0, 255).astype(np.uint8)
-    g = np.clip(m * 255 + 0.5, 0, 255).astype(np.uint8)
-    Image.fromarray(np.stack([r, g, np.zeros_like(r)], -1)).save(dst, "WEBP", lossless=True, quality=100, method=6)
+    Image.fromarray(r, "L").convert("RGB").save(dst, "WEBP", lossless=True, quality=100, method=6)
     print(" ", os.path.relpath(dst, ROOT), os.path.getsize(dst) // 1024, "kB", f"lit {lit.mean():.2f}", flush=True)
+
+
+def reexport():
+    """Tiers and masks again from the masters already rendered (no render)."""
+    scratch = os.path.join(os.environ.get("ZAWAL_SCRATCH", "/tmp/zawal-seq"), "projects")
+    for f in sorted(os.listdir(scratch)):
+        if not f.endswith(".png"):
+            continue
+        stem = f[:-4]
+        kind = stem.split("-")[-1]
+        if kind in ("l", "p"):
+            export(os.path.join(scratch, f), stem, kind)
+            W, H = SIZES[kind]
+            raw = os.path.join(scratch, stem)
+            if os.path.exists(os.path.join(raw, "sunvis.f32")):
+                sun_mask(raw, W, H, os.path.join(OUT, f"{stem}-sun.webp"))
 
 
 def main():
     what = sys.argv[1]
+    if what == "reexport":
+        return reexport()
     spp = int(sys.argv[2]) if len(sys.argv) > 2 else (40 if what == "heroes" else 32)
     only = sys.argv[3] if len(sys.argv) > 3 else None
     scratch = os.path.join(os.environ.get("ZAWAL_SCRATCH", "/tmp/zawal-seq"), "projects")
