@@ -1,0 +1,9 @@
+# build products
+renderer/bin/
+node_modules/
+dist/
+.astro/
+# raw render outputs (HDR buffers are large; only encoded frames are committed)
+*.f32
+renders/raw/
+.DS_Store
