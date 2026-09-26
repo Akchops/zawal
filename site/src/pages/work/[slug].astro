@@ -1,0 +1,156 @@
+---
+// One template, four case studies. Each opens on its hero at its signature
+// hour, draws its own Shade Study as you read, and hands over to the next
+// project through that project's shadow pattern.
+import Base from "../../layouts/Base.astro";
+import projects from "../../content/projects.json";
+import { studySvg } from "../../lib/study.js";
+import { solarPosition } from "../../lib/solar.js";
+
+export function getStaticPaths() {
+  return projects.map((p, i) => ({ params: { slug: p.slug }, props: { i } }));
+}
+const { i } = Astro.props;
+const p = projects[i];
+const next = projects[(i + 1) % projects.length];
+const vtOf = (x) => (x.pattern === "carved" ? "stars" : x.pattern);
+const site = p.site || undefined;
+const sun = solarPosition(2026, 6, 21, p.minutes, site);
+const svg = studySvg(p.study, { id: `study-${p.slug}`, title: `${p.name}: the site's shadows on 21 June, hour by hour. ${p.study.note}` });
+const img = (slug, kind, w) => `/img/projects/${slug}-${kind}${w}.webp`;
+---
+<Base title={`${p.name} · ZAWAL`} description={`${p.name}, ${p.place} (${p.year}): ${p.line} A fictional project: this site is a design demonstration.`} page="project" vt={vtOf(p)}
+  preload={[{ href: img(p.slug, "p", 540), media: "(orientation: portrait)" }, { href: img(p.slug, "l", 960), media: "(orientation: landscape)" }]}>
+  <article class="project" data-project={p.slug}>
+    <header class="p-hero">
+      <!-- First paint: a light tier (within the first-load budget); the sharp
+           set is swapped in after the load event (project.js). -->
+      <picture data-sharpen>
+        <source media="(orientation: portrait)" srcset={img(p.slug, "p", 540)} data-srcset={`${img(p.slug, "p", 720)} 720w, ${img(p.slug, "p", 1080)} 1080w`} sizes="100vw" />
+        <img src={img(p.slug, "l", 960)} data-srcset={`${img(p.slug, "l", 1280)} 1280w, ${img(p.slug, "l", 1920)} 1920w`} sizes="100vw"
+             alt={p.heroAlt} width="1920" height="1080" fetchpriority="high" decoding="async" />
+      </picture>
+      <div class={`p-hero-cap cap-${p.caption}`}>
+        <p class="mono">{p.place} · {p.year} · {p.type}</p>
+        <h1 class="statement">{p.name}</h1>
+        <p class="mono p-sun">21 June · {p.hour} · alt {sun.alt.toFixed(1)}° · az {sun.az.toFixed(1)}°</p>
+      </div>
+    </header>
+
+    <section class="p-intro">
+      <p class="head p-line">{p.line}</p>
+      <p class="mono p-fact">{p.fact}</p>
+      <div class="p-text body">
+        {p.text.map((t) => <p>{t}</p>)}
+      </div>
+    </section>
+
+    <section class="p-study on-sand" aria-labelledby="study-h">
+      <div class="p-study-text">
+        <p class="mono dust">The Shade Study · 21 June · 06:00 → 19:00</p>
+        <h2 class="head" id="study-h">The site before the building</h2>
+        <p>{p.study.note}</p>
+        <p class="mono dust legend"><span class="key key-line"></span> shadow outline, every hour <span class="key key-mark"></span> {p.study.highlight?.above != null ? "the shade the roof makes" : "the gap: where the building goes"}</p>
+      </div>
+      <div class="p-study-plot study-plot" data-study-draw set:html={svg} />
+    </section>
+
+    <section class="p-details" aria-label="Details">
+      {p.details.map((d, k) => (
+        <figure class="p-detail">
+          <img src={`/img/projects/${p.slug}-d${k + 1}-1000.webp`} srcset={`/img/projects/${p.slug}-d${k + 1}-640.webp 640w, /img/projects/${p.slug}-d${k + 1}-1000.webp 1000w`}
+               sizes="(max-width: 767px) 100vw, 46vw" alt={d.alt} width="1000" height="1250" loading="lazy" decoding="async" />
+          <figcaption class="mono">{d.title}</figcaption>
+        </figure>
+      ))}
+    </section>
+
+    <section class="p-facts" aria-label="Facts">
+      <dl>
+        {p.facts.map(([k, v]) => (<div><dt class="mono dust">{k}</dt><dd>{v}</dd></div>))}
+      </dl>
+      <p class="mono dust p-fiction">A fictional project by a fictional studio. The building, the site and the people are invented; the sun is real.</p>
+    </section>
+
+    <nav class="p-next" aria-label="Next project">
+      <a href={`/work/${next.slug}/`} data-vt={vtOf(next)}>
+        <picture>
+          <source media="(orientation: portrait)" srcset={`${img(next.slug, "p", 720)}`} />
+          <img src={img(next.slug, "l", 1280)} alt="" width="1920" height="1080" loading="lazy" decoding="async" />
+        </picture>
+        <span class="p-next-cap">
+          <span class="mono">Next · through its {next.patternName}</span>
+          <span class="statement">{next.name}</span>
+          <span class="mono">{next.place} · {next.hour}</span>
+        </span>
+      </a>
+      <ul class="p-all mono">
+        {projects.map((x) => (<li><a class="link" href={`/work/${x.slug}/`} data-vt={vtOf(x)} aria-current={x.slug === p.slug ? "page" : undefined}>{x.name}</a></li>))}
+      </ul>
+    </nav>
+  </article>
+
+  <script>
+    // After the load event: the hero's sharp set and the drawing's script.
+    const go = () => import("../../lib/project.js");
+    if (document.readyState === "complete") go(); else addEventListener("load", go, { once: true });
+  </script>
+</Base>
+
+<style>
+  .p-hero { position: relative; height: 100svh; min-height: 520px; overflow: hidden; background: var(--shade); }
+  .p-hero picture, .p-hero img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .p-hero::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(15,20,24,.35) 0%, rgba(15,20,24,0) 30%, rgba(15,20,24,0) 55%, rgba(15,20,24,.6) 100%); }
+  .p-hero-cap { position: absolute; z-index: 1; left: var(--margin); right: var(--margin); bottom: calc(56px + env(safe-area-inset-bottom)); color: var(--noon); }
+  .p-hero-cap.cap-right { text-align: right; }
+  .p-hero-cap .statement { margin: 12px 0 14px; }
+  .p-sun { color: rgba(247, 243, 234, 0.8); }
+
+  .p-intro { display: grid; grid-template-columns: repeat(12, 1fr); gap: 28px var(--gutter); padding: 14vh var(--margin) 12vh; }
+  .p-line { grid-column: 1 / span 8; margin: 0; }
+  .p-fact { grid-column: 1 / span 6; margin: 0; color: var(--copper); text-transform: none; letter-spacing: 0.03em; font-size: 14px; }
+  .p-text { grid-column: 7 / span 5; max-width: 34em; }
+  @media (max-width: 767px) { .p-line, .p-fact, .p-text { grid-column: 1 / -1; } .p-intro { padding: 10vh var(--margin); } }
+
+  .p-study { display: grid; grid-template-columns: minmax(0, 4fr) minmax(0, 8fr); gap: var(--gutter); padding: 12vh var(--margin); align-items: center; }
+  .p-study-text .head { margin: 12px 0 18px; }
+  .p-study-text p { max-width: 32em; }
+  .legend { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 20px; }
+  .key { display: inline-block; width: 18px; height: 10px; margin-left: 8px; }
+  .key-line { border: 1px solid #0f1418; }
+  .key-mark { background: var(--copper-deep); }
+  @media (max-width: 767px) { .p-study { grid-template-columns: 1fr; } }
+  .study-plot :global(svg) { width: 100%; height: auto; max-height: 86svh; }
+  .study-plot :global(.plot) { fill: #efe6d6; stroke: rgba(15, 20, 24, 0.5); stroke-width: 1; }
+  .study-plot :global(.shadow) { fill: rgba(15, 20, 24, 0.035); stroke: #0f1418; stroke-width: 1; vector-effect: non-scaling-stroke; }
+  .study-plot :global(.hour.now .shadow) { stroke: var(--copper-deep); stroke-width: 1.6; }
+  .study-plot :global(.hour-label) { font-family: var(--f-mono); font-size: 13px; fill: #6e675d; }
+  .study-plot :global(.caster) { fill: rgba(15, 20, 24, 0.82); }
+  .study-plot :global(.tree) { fill: none; stroke: #0f1418; stroke-width: 1.2; stroke-dasharray: 3 4; }
+  .study-plot :global(.roof) { fill: none; stroke: #0f1418; stroke-width: 1.4; }
+  .study-plot :global(.mark) { fill: var(--copper-deep); opacity: 0.85; }
+  .study-plot :global(.north path), .study-plot :global(.scale path) { fill: none; stroke: #0f1418; stroke-width: 1.2; }
+  .study-plot :global(.north text), .study-plot :global(.scale text) { font-family: var(--f-mono); font-size: 13px; fill: #0f1418; }
+
+  .p-details { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gutter); padding: 14vh var(--margin) 10vh; }
+  .p-detail { margin: 0; }
+  .p-detail:nth-child(2) { margin-top: 18vh; }
+  .p-detail img { width: 100%; height: auto; background: #1a2025; }
+  .p-detail figcaption { margin-top: 12px; color: var(--dust); }
+  @media (max-width: 767px) { .p-details { grid-template-columns: 1fr; gap: 48px; } .p-detail:nth-child(2) { margin-top: 0; } }
+
+  .p-facts { padding: 4vh var(--margin) 14vh; }
+  .p-facts dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0 var(--gutter); margin: 0; border-top: 1px solid var(--hair); }
+  .p-facts dl div { border-bottom: 1px solid var(--hair); padding: 16px 0; }
+  .p-facts dd { margin: 6px 0 0; font-family: var(--f-display); font-stretch: 112%; font-size: 20px; }
+  .p-fiction { margin-top: 28px; max-width: 60em; text-transform: none; letter-spacing: 0.02em; }
+
+  .p-next { position: relative; }
+  .p-next > a { position: relative; display: block; height: 78svh; min-height: 420px; overflow: hidden; color: var(--noon); text-decoration: none; }
+  .p-next picture, .p-next img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .p-next > a::after { content: ""; position: absolute; inset: 0; background: rgba(15, 20, 24, 0.45); transition: background-color 400ms var(--ease-ui); }
+  .p-next > a:hover::after, .p-next > a:focus-visible::after { background: rgba(15, 20, 24, 0.25); }
+  .p-next-cap { position: absolute; z-index: 1; left: var(--margin); bottom: 56px; display: grid; gap: 12px; }
+  .p-all { list-style: none; display: flex; flex-wrap: wrap; gap: 12px 28px; margin: 0; padding: 28px var(--margin) 40px; }
+  .p-all a[aria-current] { color: var(--dust); }
+</style>

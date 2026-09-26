@@ -6,7 +6,9 @@
   "type": "module",
   "scripts": {
     "dev": "astro dev",
-    "build": "node scripts/pack-frames.mjs && astro build && node scripts/check-budget.mjs",
+    "assets": "node scripts/pack-frames.mjs && node scripts/make-posters.mjs && node scripts/make-masks.mjs",
+    "build": "npm run assets && astro build && node scripts/check-budget.mjs",
+    "preview-site": "node scripts/make-preview.mjs",
     "preview": "astro preview"
   },
   "dependencies": {

@@ -90,22 +90,40 @@ const MONTHS = ["January", "February", "March", "April", "May", "June", "July", 
  * Dubai puts the sun at (alt, az)? Searches the year on a coarse grid, then
  * refines. Returns null when no day has that sun (angular error > tolerance).
  */
+const tables = new Map();
+/** The year's sun directions every 3 days x 10 minutes, built once per site. */
+function yearTable(year, site) {
+  const key = `${year}:${site.lat}:${site.lon}`;
+  let t = tables.get(key);
+  if (t) return t;
+  const rows = [];
+  const daysIn = (m) => new Date(Date.UTC(year, m, 0)).getUTCDate();
+  for (let m = 1; m <= 12; m++)
+    for (let d = 1; d <= daysIn(m); d += 3)
+      for (let min = 300; min <= 1200; min += 10) {
+        const p = solarPosition(year, m, d, min, site);
+        if (p.alt < -1) continue;
+        const v = sunDir(p.alt, p.az);
+        rows.push(v[0], v[1], v[2], m, d, min);
+      }
+  t = new Float32Array(rows);
+  tables.set(key, t);
+  return t;
+}
+
 export function whenIsTheSun(alt, az, year = 2026, site = DUBAI, tolDeg = 1.2) {
   const target = sunDir(alt, az);
   const dist = (p) => {
     const d = sunDir(p.alt, p.az);
     return Math.acos(Math.max(-1, Math.min(1, d[0] * target[0] + d[1] * target[1] + d[2] * target[2])));
   };
-  let best = { err: Infinity, month: 6, day: 21, minutes: 720 };
-  const daysIn = (m) => new Date(Date.UTC(year, m, 0)).getUTCDate();
-  for (let m = 1; m <= 12; m++) {
-    for (let d = 1; d <= daysIn(m); d += 3) {
-      for (let t = 300; t <= 1200; t += 10) {
-        const err = dist(solarPosition(year, m, d, t, site));
-        if (err < best.err) best = { err, month: m, day: d, minutes: t };
-      }
-    }
+  const T = yearTable(year, site);
+  let bi = 0, bd = -2;
+  for (let i = 0; i < T.length; i += 6) {
+    const dot = T[i] * target[0] + T[i + 1] * target[1] + T[i + 2] * target[2];
+    if (dot > bd) { bd = dot; bi = i; }
   }
+  let best = { err: Math.acos(Math.min(1, bd)), month: T[bi + 3], day: T[bi + 4], minutes: T[bi + 5] };
   // Refine around the best coarse hit: day +-3, minute +-10.
   const b0 = best;
   for (let dd = -3; dd <= 3; dd++) {

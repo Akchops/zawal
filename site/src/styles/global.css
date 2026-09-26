@@ -169,13 +169,18 @@ button { font: inherit; color: inherit; }
   to { -webkit-mask-position: 0% 0; mask-position: 0% 0; }
 }
 ::view-transition-old(root), ::view-transition-new(root) {
-  -webkit-mask-image: url("/img/eclipse-mask.svg");
-  mask-image: url("/img/eclipse-mask.svg");
+  -webkit-mask-image: url("/img/vt-stars.svg");
+  mask-image: url("/img/vt-stars.svg");
   -webkit-mask-size: auto 100%;
   mask-size: auto 100%;
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
 }
+/* A project page arrives (and the page before it leaves) through that
+   project's own pattern: dapple, palm slats, triangles, carved stars. */
+:root[data-vt="dapple"]::view-transition-old(root), :root[data-vt="dapple"]::view-transition-new(root) { -webkit-mask-image: url("/img/vt-dapple.svg"); mask-image: url("/img/vt-dapple.svg"); }
+:root[data-vt="slats"]::view-transition-old(root), :root[data-vt="slats"]::view-transition-new(root) { -webkit-mask-image: url("/img/vt-slats.svg"); mask-image: url("/img/vt-slats.svg"); }
+:root[data-vt="triangles"]::view-transition-old(root), :root[data-vt="triangles"]::view-transition-new(root) { -webkit-mask-image: url("/img/vt-triangles.svg"); mask-image: url("/img/vt-triangles.svg"); }
 
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-old(root), ::view-transition-new(root) { animation: none; }

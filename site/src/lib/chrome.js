@@ -15,3 +15,11 @@ if (toggle && menu) {
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !menu.hidden) { set(false); toggle.focus(); } });
   menu.addEventListener("click", (e) => { if (e.target.closest("a")) set(false); });
 }
+
+// Page transitions: the page being left takes the pattern of the page it goes
+// to (links to a project carry data-vt), so both halves share one shadow.
+document.addEventListener("click", (e) => {
+  const a = e.target.closest?.("a[href]");
+  if (!a || a.target || e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey) return;
+  document.documentElement.dataset.vt = a.dataset.vt || "stars";
+});

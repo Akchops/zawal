@@ -8,15 +8,19 @@ interface Props {
   description?: string;
   page?: string;
   preload?: { href: string; srcset?: string; sizes?: string; media?: string }[];
+  vt?: string;
 }
-const { title, description = copy.home.description, page = "", preload = [] } = Astro.props;
+const { title, description = copy.home.description, page = "", preload = [], vt = "stars" } = Astro.props;
+// Links to project pages carry their pattern for the page transition.
+const vtFor = (href: string) => (href.startsWith("/work/ghaf-house") ? "dapple" : href.startsWith("/work/hotel-sikka") ? "slats"
+  : href.startsWith("/work/qudra-canopy") ? "triangles" : "stars");
 // Each page states the site root relative to itself, so the built site works
 // from any folder (scripts resolve fetches against it: src/lib/paths.js).
 const depth = Astro.url.pathname.split("/").filter(Boolean).length;
 const root = depth ? "../".repeat(depth) : "./";
 ---
 <!doctype html>
-<html lang="en" data-page={page} data-root={root}>
+<html lang="en" data-page={page} data-root={root} data-vt={vt}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -44,7 +48,7 @@ const root = depth ? "../".repeat(depth) : "./";
       <a class="nav-mark" href="/" aria-label="ZAWAL, home">ZAWAL</a>
       <nav aria-label="Main">
         <ul class="nav-list">
-          {copy.nav.map((n) => <li><a class="link mono" href={n.href}>{n.label}</a></li>)}
+          {copy.nav.map((n) => <li><a class="link mono" href={n.href} data-vt={vtFor(n.href)}>{n.label}</a></li>)}
         </ul>
       </nav>
       <button class="nav-toggle mono" aria-expanded="false" aria-controls="menu" data-menu-toggle>Menu</button>
@@ -52,7 +56,7 @@ const root = depth ? "../".repeat(depth) : "./";
     <div class="menu" id="menu" hidden data-menu>
       <ul>
         <li><a href="/">The Day</a></li>
-        {copy.nav.map((n) => <li><a href={n.href}>{n.label}</a></li>)}
+        {copy.nav.map((n) => <li><a href={n.href} data-vt={vtFor(n.href)}>{n.label}</a></li>)}
       </ul>
       <p class="mono dust">{studio.honestyShort}</p>
     </div>

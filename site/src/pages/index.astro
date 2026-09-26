@@ -52,7 +52,8 @@ const P = (n: string) => `/img/posters/${n}`;
            and layers over the stage; without JavaScript, or with reduced
            motion, they are a long-form article, each with its still. -->
       <div class="shot shot-cold" data-shot data-from="0" data-to="0.55" data-sun="74.5">
-        <picture class="still"><source media="(orientation: portrait)" srcset="/img/hero/b000-p720.webp 720w, /img/hero/b000-p1080.webp 1080w" sizes="100vw" /><img src="/img/hero/b000-l1600.webp" srcset="/img/hero/b000-l1280.webp 1280w, /img/hero/b000-l1600.webp 1600w, /img/hero/b000-l2560.webp 2560w" sizes="100vw" alt="The east facade of a limewashed house at 07:30, the low sun full on it, a pierced brass lantern by the gate, a quiet street with parked cars and a ghaf tree." loading="eager" width="1600" height="900" /></picture>
+        <!-- the same files as the first paint, so the static still costs no extra bytes -->
+        <picture class="still"><source media="(orientation: portrait)" srcset="/img/hero/b000-p720.webp" /><img src="/img/hero/b000-l1280.webp" alt="The east facade of a limewashed house at 07:30, the low sun full on it, a pierced brass lantern by the gate, a quiet street with parked cars and a ghaf tree." width="1280" height="720" /></picture>
         <div class="cap cap-cold">
           <p class="mono kicker">{c.coldOpen.kicker}</p>
           <h1 class="wordmark"><span class="cold-line">ZAWAL</span></h1>
@@ -139,7 +140,7 @@ const P = (n: string) => `/img/posters/${n}`;
             <h3 class="statement work-name" data-reveal>{p.name}</h3>
             <p class="work-line" data-reveal>{p.line}</p>
             <p class="mono work-fact" data-reveal>{p.fact}</p>
-            <p class="work-link" data-reveal><a class="link mono" href={`/work/${p.slug}/`}>The project <span aria-hidden="true">→</span></a></p>
+            <p class="work-link" data-reveal><a class="link mono" href={`/work/${p.slug}/`} data-vt={p.pattern === "carved" ? "stars" : p.pattern}>The project <span aria-hidden="true">→</span></a></p>
           </div>
         </div>
       ))}

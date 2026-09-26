@@ -1,0 +1,121 @@
+---
+// The method, as a stand-alone commission, and its instrument: the courtyard
+// relit live for any date and minute, beside the plot drawing for that day.
+import Base from "../../layouts/Base.astro";
+import copy from "../../content/copy.json";
+import studio from "../../content/studio.json";
+import study from "../../content/study.json";
+import { studySvg } from "../../lib/study.js";
+
+const c = copy.shadeStudy;
+const svg = studySvg(study.home, { id: "ss-study", title: study.home.title });
+const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+const mail = `mailto:${studio.contact.email}?subject=${encodeURIComponent("Shade Study")}`;
+---
+<Base title={`${c.title} · ZAWAL`} description={`${c.lede} ZAWAL is a fictional studio: this site is a design demonstration.`} page="shade-study"
+  preload={[{ href: "/img/posters/a048-p.webp", media: "(orientation: portrait)" }, { href: "/img/posters/a048-l.webp", media: "(orientation: landscape)" }]}>
+  <header class="ss-head">
+    <p class="mono dust">{studio.method.name} · for {c.who.replace(/^For /, "").replace(/\.$/, "").toLowerCase()}</p>
+    <h1 class="statement">{c.title}</h1>
+    <p class="head ss-lede">{c.lede}</p>
+  </header>
+
+  <section class="instrument" aria-labelledby="inst-h" data-instrument>
+    <h2 class="visually-hidden" id="inst-h">The instrument</h2>
+    <div class="inst-stage" data-inst-stage>
+      <picture class="inst-still">
+        <source media="(orientation: portrait)" srcset="/img/posters/a048-p.webp" />
+        <img src="/img/posters/a048-l.webp" alt="The courtyard at zawal, 12:20 on 21 June: the canopy's stars fall straight down onto the floor." width="1600" height="900" />
+      </picture>
+      <canvas data-inst-canvas hidden aria-label="The courtyard, relit live for the date and time you choose" role="img"></canvas>
+      <p class="inst-read mono" aria-live="polite" data-inst-read>21 June · 12:20 · alt 88.2° · az 180.1°</p>
+    </div>
+    <div class="inst-controls">
+      <p class="inst-intro">{c.instrument}</p>
+      <div class="inst-row">
+        <label class="mono" for="inst-month">Date</label>
+        <select id="inst-month" data-inst-month>{months.map((m, i) => <option value={i + 1} selected={i === 5}>{m}</option>)}</select>
+        <select id="inst-day" aria-label="Day" data-inst-day>{Array.from({ length: 31 }, (_, i) => <option value={i + 1} selected={i === 20}>{i + 1}</option>)}</select>
+      </div>
+      <div class="inst-row">
+        <label class="mono" for="inst-time">Time</label>
+        <input id="inst-time" type="range" min="330" max="1150" step="1" value="740" data-inst-time />
+        <output class="mono" for="inst-time" data-inst-clock>12:20</output>
+      </div>
+      <p class="inst-when" data-inst-when>Drag across the courtyard to move the sun; the date and time follow.</p>
+      <p class="mono dust inst-nojs">The live instrument needs JavaScript and WebGL. The drawing below is computed for 21 June.</p>
+    </div>
+    <div class="inst-plot on-sand">
+      <p class="mono dust"><span data-inst-plot-date>21 June</span> · the plot in Jumeirah, every hour</p>
+      <div class="study-plot" data-inst-plot set:html={svg} />
+    </div>
+  </section>
+
+  <section class="ss-method" aria-labelledby="how-h">
+    <h2 class="head" id="how-h">How a study works</h2>
+    <ol class="steps">
+      {studio.method.steps.map((s, i) => <li><span class="mono dust">0{i + 1}</span><p>{s}</p></li>)}
+    </ol>
+  </section>
+
+  <section class="ss-deliver on-sand" aria-labelledby="del-h">
+    <h2 class="head" id="del-h">What you receive</h2>
+    <dl class="deliver">
+      {c.deliver.map(([k, v]) => (<div><dt>{k}</dt><dd>{v}</dd></div>))}
+    </dl>
+    <p class="ss-cta"><a class="cta" href={mail}>{c.cta}</a> <span class="mono dust">{c.who}</span></p>
+  </section>
+
+  <script>
+    import "../../lib/instrument.js";
+  </script>
+</Base>
+
+<style>
+  .ss-head { padding: calc(96px + 8vh) var(--margin) 8vh; max-width: 70em; }
+  .ss-head .statement { margin: 14px 0 22px; }
+  .ss-lede { max-width: 22em; margin: 0; }
+
+  .instrument { display: grid; grid-template-columns: minmax(0, 8fr) minmax(0, 4fr); gap: 32px var(--gutter); padding: 0 var(--margin) 12vh; }
+  .inst-stage { position: relative; aspect-ratio: 16 / 9; background: #0b0f12; overflow: hidden; touch-action: pan-y; cursor: crosshair; }
+  .inst-still img, .inst-stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .inst-read { position: absolute; left: 14px; bottom: 12px; margin: 0; color: rgba(247, 243, 234, 0.9); mix-blend-mode: difference; }
+  .inst-controls { display: grid; align-content: start; gap: 18px; }
+  .inst-intro { margin: 0; max-width: 28em; }
+  .inst-row { display: grid; grid-template-columns: 4.5em 1fr auto; gap: 12px; align-items: center; }
+  .inst-row select { background: transparent; color: var(--noon); border: 1px solid var(--hair); padding: 10px 8px; font: inherit; }
+  .inst-row select option { color: #0f1418; }
+  .inst-row input[type="range"] { width: 100%; accent-color: var(--copper); }
+  .inst-when { margin: 0; font-family: var(--f-display); font-stretch: 112%; font-size: 21px; line-height: 1.25; min-height: 2.5em; }
+  :global(html.js) .inst-nojs { display: none; }
+  .inst-plot { grid-column: 1 / -1; padding: 40px var(--margin); margin: 0 calc(-1 * var(--margin)); }
+  .inst-plot .study-plot { max-width: 880px; margin: 18px auto 0; }
+  @media (max-width: 900px) {
+    .instrument { grid-template-columns: 1fr; }
+    .inst-stage { aspect-ratio: 9 / 14; max-height: 78svh; }
+  }
+  .study-plot :global(svg) { width: 100%; height: auto; }
+  .study-plot :global(.plot) { fill: #efe6d6; stroke: rgba(15, 20, 24, 0.5); stroke-width: 1; }
+  .study-plot :global(.shadow) { fill: rgba(15, 20, 24, 0.035); stroke: #0f1418; stroke-width: 1; vector-effect: non-scaling-stroke; }
+  .study-plot :global(.hour.now .shadow) { stroke: var(--copper-deep); stroke-width: 2.2; fill: rgba(54, 96, 79, 0.12); }
+  .study-plot :global(.hour-label) { font-family: var(--f-mono); font-size: 13px; fill: #6e675d; }
+  .study-plot :global(.caster) { fill: rgba(15, 20, 24, 0.82); }
+  .study-plot :global(.tree) { fill: none; stroke: #0f1418; stroke-width: 1.2; stroke-dasharray: 3 4; }
+  .study-plot :global(.mark) { fill: var(--copper-deep); opacity: 0.85; }
+  .study-plot :global(.north path), .study-plot :global(.scale path) { fill: none; stroke: #0f1418; stroke-width: 1.2; }
+  .study-plot :global(.north text), .study-plot :global(.scale text) { font-family: var(--f-mono); font-size: 13px; fill: #0f1418; }
+
+  .ss-method { padding: 12vh var(--margin); }
+  .steps { list-style: none; margin: 32px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--gutter); }
+  .steps li { border-top: 1px solid var(--hair); padding-top: 16px; }
+  .steps p { margin: 10px 0 0; max-width: 24em; font-size: 19px; line-height: 1.4; }
+  @media (max-width: 767px) { .steps { grid-template-columns: 1fr; } }
+
+  .ss-deliver { padding: 12vh var(--margin); }
+  .deliver { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 var(--gutter); margin: 32px 0 48px; border-top: 1px solid rgba(15, 20, 24, 0.3); }
+  .deliver div { border-bottom: 1px solid rgba(15, 20, 24, 0.3); padding: 18px 0; }
+  .deliver dt { font-family: var(--f-display); font-stretch: 118%; font-size: 22px; }
+  .deliver dd { margin: 6px 0 0; max-width: 30em; }
+  @media (max-width: 767px) { .deliver { grid-template-columns: 1fr; } }
+  .ss-cta { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 24px; }
+</style>

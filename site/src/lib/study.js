@@ -27,9 +27,9 @@ function hull(points) {
 const circle = ([cx, cy, r], n = 32) =>
   Array.from({ length: n }, (_, i) => [cx + r * Math.cos((i / n) * 2 * Math.PI), cy + r * Math.sin((i / n) * 2 * Math.PI)]);
 
-/** Shadow polygons (plan, metres) for local minute m on 21 June. */
-export function shadowsAt(model, minutes) {
-  const { alt, az } = solarPosition(2026, 6, 21, minutes);
+/** Shadow polygons (plan, metres) for local minute m on a date (default 21 June). */
+export function shadowsAt(model, minutes, date = model.date || [2026, 6, 21]) {
+  const { alt, az } = solarPosition(date[0], date[1], date[2], minutes, model.site || undefined);
   if (alt <= 2) return { alt, az, polys: [] };
   const d = sunDir(alt, az);               // +x east, +y up, +z south
   const k = 1 / Math.tan((alt * Math.PI) / 180);
@@ -134,8 +134,8 @@ export function studySvg(model, { sc = 20, id = "study", title = "", ground = fa
     out.push(`<path class="plot-fill" fill-rule="evenodd" d="M0,0H${W}V${H}H0Z${d}"/>`);
   }
   out.push(`<g class="ink">`);
-  out.push(`<path class="mark" d="${d || "M0 0"}"${R ? ` data-x="${f1(rx)}" data-y="${f1(ry)}" data-w="${f1(rw)}" data-h="${f1(rh)}"` : ""}/>`);
   out.push(`<rect class="plot" x="0" y="0" width="${W}" height="${H}"/>`);
+  out.push(`<path class="mark" d="${d || "M0 0"}"${R ? ` data-x="${f1(rx)}" data-y="${f1(ry)}" data-w="${f1(rw)}" data-h="${f1(rh)}"` : ""}/>`);
   out.push(`<g class="hours" clip-path="url(#${id}-clip)">`);
   for (let hh = DAY.from; hh <= DAY.to; hh++) {
     const { polys, alt } = shadowsAt(model, hh * 60);

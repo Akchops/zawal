@@ -328,7 +328,17 @@
       "highlight": {
         "above": 6
       },
-      "note": "An empty plot in the desert, with nothing on it to cast a shadow. The roof is the only shade, so here the drawing shows the roof's own shadow, hour by hour: its shadow is the building."
+      "note": "An empty plot in the desert, with nothing on it to cast a shadow. The roof is the only shade, so here the drawing shows the roof's own shadow, hour by hour: its shadow is the building.",
+      "site": {
+        "lat": 24.84,
+        "lon": 55.37,
+        "tz": 4
+      }
+    },
+    "site": {
+      "lat": 24.84,
+      "lon": 55.37,
+      "tz": 4
     }
   },
   {

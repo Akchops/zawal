@@ -1,0 +1,77 @@
+---
+// The studio: thirty-one people in Al Quoz, its two founders as text
+// portraits (no invented photographs of people), what it does, and how to
+// reach it. Every name here is fictional.
+import Base from "../../layouts/Base.astro";
+import studio from "../../content/studio.json";
+import copy from "../../content/copy.json";
+---
+<Base title="Studio · ZAWAL" description={`${studio.people} people in a converted warehouse in Al Quoz, Dubai. ${studio.honesty}`} page="studio">
+  <header class="st-head">
+    <p class="mono dust">{studio.people} people · Al Quoz, Dubai · since {studio.founded}</p>
+    <h1 class="statement">{copy.home.studioTitle}</h1>
+  </header>
+
+  <section class="st-intro">
+    {studio.studioText.map((t) => <p class="head">{t}</p>)}
+  </section>
+
+  <section class="st-founders on-sand" aria-labelledby="f-h">
+    <h2 class="mono dust" id="f-h">The founders</h2>
+    <div class="st-grid">
+      {studio.founders.map((f) => (
+        <article class="st-founder">
+          <blockquote class="statement">“{f.quote}”</blockquote>
+          <h3 class="head">{f.name}</h3>
+          <p class="mono">{f.role} · {f.from}</p>
+          <p class="st-portrait">{f.portrait}</p>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <section class="st-services" aria-labelledby="s-h">
+    <h2 class="head" id="s-h">What we do</h2>
+    <ul>
+      {studio.services.map((s) => (<li><span class="svc">{s.name}</span><span>{s.line}</span></li>))}
+    </ul>
+    <p><a class="link mono" href="/shade-study/">{studio.method.name}: how every project starts <span aria-hidden="true">→</span></a></p>
+  </section>
+
+  <section class="st-contact" id="contact" aria-labelledby="c-h">
+    <h2 class="statement" id="c-h">{copy.home.nightTitle}</h2>
+    <address class="mono">
+      <a class="link" href={`mailto:${studio.contact.email}`}>{studio.contact.email}</a>
+      <a class="link" href={`tel:${studio.contact.phoneHref}`}>{studio.contact.phone}</a>
+      <span>{studio.contact.address.join(", ")}</span>
+    </address>
+    <p class="mono dust">{studio.contact.note} {studio.honesty}</p>
+  </section>
+</Base>
+
+<style>
+  .st-head { padding: calc(96px + 10vh) var(--margin) 8vh; }
+  .st-head .statement { margin: 16px 0 0; max-width: 15em; }
+  .st-intro { padding: 4vh var(--margin) 14vh; display: grid; grid-template-columns: repeat(12, 1fr); gap: 28px var(--gutter); }
+  .st-intro .head { grid-column: 4 / span 8; margin: 0; }
+  @media (max-width: 767px) { .st-intro .head { grid-column: 1 / -1; } }
+
+  .st-founders { padding: 12vh var(--margin); }
+  .st-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px var(--gutter); margin-top: 32px; }
+  .st-founder { border-top: 1px solid rgba(15, 20, 24, 0.3); padding-top: 22px; }
+  .st-founder blockquote { margin: 0 0 32px; font-size: clamp(30px, 3.6vw, 60px); }
+  .st-founder .head { margin: 0 0 6px; }
+  .st-portrait { max-width: 34em; margin-top: 18px; }
+  @media (max-width: 767px) { .st-grid { grid-template-columns: 1fr; } }
+
+  .st-services { padding: 14vh var(--margin); }
+  .st-services ul { list-style: none; margin: 28px 0 32px; padding: 0; }
+  .st-services li { display: grid; grid-template-columns: minmax(10em, 18em) 1fr; gap: 6px var(--gutter); border-top: 1px solid var(--hair); padding: 18px 0; }
+  .svc { font-family: var(--f-display); font-stretch: 118%; font-weight: 300; font-size: clamp(22px, 2vw, 30px); line-height: 1.1; }
+  @media (max-width: 767px) { .st-services li { grid-template-columns: 1fr; } }
+
+  .st-contact { padding: 12vh var(--margin) 16vh; border-top: 1px solid var(--hair); }
+  .st-contact .statement { max-width: 14em; margin: 0 0 32px; font-size: clamp(34px, 5vw, 84px); }
+  .st-contact address { display: grid; gap: 8px; font-style: normal; margin-bottom: 28px; font-size: 14px; }
+  .st-contact .dust { text-transform: none; letter-spacing: 0.02em; }
+</style>

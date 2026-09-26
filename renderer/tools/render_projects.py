@@ -52,7 +52,8 @@ PROJECTS = {
                  dict(pos=(0.9, 1.55, 9.8), tgt=(-0.2, 2.3, 5.4), fov=60, shift=0.1, ev=2.8)]),      # a screen, edge on
 }
 SIZES = {"l": (1920, 1080), "p": (1080, 1920), "d": (1000, 1250)}
-WIDTHS = {"l": [1920, 1280], "p": [1080, 720], "d": [1000, 640]}
+WIDTHS = {"l": [1920, 1280, 960], "p": [1080, 720, 540], "d": [1000, 640]}
+FIRST = {960, 540}        # first-paint tiers (inside the first-load budget), lighter
 
 
 def render(slug, spec, cam, kind, spp, raw):
@@ -76,7 +77,7 @@ def export(master, stem, kind):
         h = round(w * img.height / img.width)
         im = img if w == img.width else img.resize((w, h), Image.LANCZOS)
         p = os.path.join(OUT, f"{stem}{w}.webp")
-        im.save(p, "WEBP", quality=Q, method=6)
+        im.save(p, "WEBP", quality=70 if (kind in "lp" and w in FIRST) else Q, method=6)
         print(" ", os.path.relpath(p, ROOT), os.path.getsize(p) // 1024, "kB", flush=True)
 
 
