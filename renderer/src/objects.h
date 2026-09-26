@@ -137,7 +137,7 @@ inline float sdfCarCover(V3 p, uint32_t seed, int* slot) {
 // Holes are the site's star pattern: wrapped around the drum (sunlight from
 // the side draws stars on a wall) and cut straight down through the dome (the
 // overhead sun draws stars on the floor through the open bottom).
-inline float sdfLantern(V3 p, int* slot) {
+inline float sdfLantern(V3 p, int* slot, bool bulb = true) {
   const float R = 0.15f, H = 0.34f, T = 0.0025f;
   float r = std::sqrt(p.x * p.x + p.z * p.z);
   // Drum: a thin cylindrical wall.
@@ -170,10 +170,12 @@ inline float sdfLantern(V3 p, int* slot) {
   float loop = std::sqrt(lr * lr + lq.z * lq.z) - 0.004f;
   // Socket and a frosted bulb hanging inside.
   float socket = sdCapsuleSeg(p, V3(0.0f, top - 0.02f, 0.0f), V3(0.0f, H - 0.03f, 0.0f), 0.013f);
-  float bulb = length(p - V3(0.0f, H - 0.08f, 0.0f)) - 0.03f;
   float d = std::min(std::min(drum, dome), std::min(ring, std::min(std::min(fin, loop), socket)));
-  if (slot) *slot = bulb < d ? SLOT1 : SLOT0;
-  return std::min(d, bulb);
+  // By day a frosted bulb; lit at night the bulb is the scene's emitter
+  // (a filament-sized sphere light), so the SDF leaves it out.
+  float bl = bulb ? length(p - V3(0.0f, H - 0.08f, 0.0f)) - 0.03f : 1e9f;
+  if (slot) *slot = bl < d ? SLOT1 : SLOT0;
+  return std::min(d, bl);
 }
 
 // ---- lathed things ------------------------------------------------------------------
@@ -241,7 +243,7 @@ inline float sdfLocal(const SdfObj& o, V3 p, int* slot) {
   switch (o.kind) {
     case SDF_CAR: return sdfCar(p, slot);
     case SDF_CAR_COVER: return sdfCarCover(p, o.seed, slot);
-    case SDF_LANTERN: return sdfLantern(p, slot);
+    case SDF_LANTERN: return sdfLantern(p, slot, o.prm[0] < 0.5f);
     case SDF_PLANTER: return sdfPlanter(p, slot);
     case SDF_JAR: return sdfJar(p, slot);
     case SDF_CUSHION: return sdfCushion(p, o.prm, slot);

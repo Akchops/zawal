@@ -28,6 +28,10 @@ struct TreeSpec {
   float sprayBias = 0.0f;   // >0 fills the sprays in (1 = no spray gaps at all)
   float coreClump = 0.0f;   // >0 adds one central crown mass of this radius (x crown)
   float noiseAmt = 1.0f;    // density break-up (see Foliage::noiseAmt)
+  // Spray shape (see Foliage): defaults are the olive/scrub look; the ghaf
+  // overrides them so its fringe is whole sprays, not scattered leaves.
+  float sprayLo = 0.12f, sprayHi = 0.38f, sprayDens = 0.25f, fillBase = 0.4f;
+  float leafA = 0.0f, leafB = 0.0f, combN = 0.0f;   // 0 = the species default
 };
 
 inline void addTree(Scene& s, const TreeSpec& t) {
@@ -94,6 +98,7 @@ inline void addTree(Scene& s, const TreeSpec& t) {
   }
   Foliage f;
   f.noiseAmt = t.noiseAmt;
+  f.sprayLo = t.sprayLo; f.sprayHi = t.sprayHi; f.sprayDens = t.sprayDens; f.fillBase = t.fillBase;
   f.cell = t.cell;
   f.dcell = t.dcell;
   f.fill = t.fill;
@@ -104,6 +109,9 @@ inline void addTree(Scene& s, const TreeSpec& t) {
   // clustering, so sprays are filled in.
   if (t.leafMat == M_LEAF_OLIVE) { f.leafA = 0.46f; f.leafB = 0.12f; f.upBias = 0.25f; f.sprayFreq = 11.0f; }
   f.sprayBias = t.sprayBias;
+  if (t.leafA > 0.0f) f.leafA = t.leafA;
+  if (t.leafB > 0.0f) f.leafB = t.leafB;
+  f.combN = t.combN;
   buildFoliageDensity(f, cc, cr);
   s.addFoliage(f);
 }

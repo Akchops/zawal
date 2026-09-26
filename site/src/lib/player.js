@@ -120,7 +120,8 @@ async function streamBundle(url, index, onFrame, signal) {
   const buf = new Uint8Array(total);
   const reader = res.body.getReader();
   let got = 0, next = 0;
-  const order = index.map((f, i) => i).sort((a, b) => index[a].o - index[b].o);
+  // Frames not rendered yet have n = 0: never emitted.
+  const order = index.map((f, i) => i).filter((i) => index[i].n > 0).sort((a, b) => index[a].o - index[b].o);
   for (;;) {
     const { done, value } = await reader.read();
     if (done) break;
@@ -290,6 +291,7 @@ export class SequencePlayer {
     if (rest && Math.abs(this.f - Math.round(this.f)) < 0.02) return this.drawStill(rest, time);
     const ka = this.source(i0), kb = this.source(i1);
     if (!ka && !kb) return;
+    this.firstDraw();
     const A = ka || kb, B = kb || ka;
     if (!ka) t = 1;
     if (!kb) t = 0;
@@ -298,8 +300,16 @@ export class SequencePlayer {
     this.draw2D(A, B, t);
   }
 
+  firstDraw() {
+    if (this.drewOnce) return;
+    this.drewOnce = true;
+    for (const fn of this.firstListeners || []) requestAnimationFrame(fn);
+  }
+  onFirstDraw(fn) { (this.firstListeners ||= []).push(fn); }
+
   drawStill(bm, time) {
     this.dirty = false;
+    this.firstDraw();
     if (this.gl) {
       const key = "rest";
       let tex = this.tex.get(key);

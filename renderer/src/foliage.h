@@ -33,6 +33,14 @@ struct Foliage {
   float sprayFreq = 6.5f;  // 1/m: spray cluster frequency
   float sprayBias = 0.0f;  // raises the share of cells inside a spray
   float noiseAmt = 1.0f;   // how hard the density noise and gaps break the clumps up
+  float sprayLo = 0.12f, sprayHi = 0.38f;  // spray edge (noise thresholds)
+  float sprayDens = 0.25f; // how much density decides where sprays are
+  float fillBase = 0.4f;   // leaf probability inside a spray at zero density (x fill)
+  // Compound leaves (ghaf): each leaf is a rachis with leaflets across it,
+  // combN leaflets per half-length, combDuty of each period solid. The
+  // leaflets are ~2 mm, so at street distance a leaf reads as a feathery,
+  // partly see-through spray instead of an opaque dot. 0 = simple leaf.
+  float combN = 0.0f, combDuty = 0.55f;
   uint32_t seed = 1;
   // Block occupancy for the two-level DDA: blocks of B^3 leaf cells, a block
   // is occupied if any cell centre in it has density > 0. Block faces are
@@ -59,8 +67,8 @@ struct Foliage {
     // Leaves come in sprays (a ghaf leaf is dozens of leaflets on one
     // rachis): a fine noise field groups them into ~12-20 cm clusters with
     // sky between, instead of an even confetti of single leaves.
-    float spray = smoothstep(0.12f, 0.38f, gnoise(cc * sprayFreq + V3((float)(seed & 255))) + sprayBias + 0.25f * (d - 0.5f));
-    return hashf(h) < fill * spray * (0.4f + 0.6f * d);
+    float spray = smoothstep(sprayLo, sprayHi, gnoise(cc * sprayFreq + V3((float)(seed & 255))) + sprayBias + sprayDens * (d - 0.5f));
+    return hashf(h) < fill * spray * (fillBase + (1.0f - fillBase) * d);
   }
   std::vector<uint64_t> bits;   // leaf presence per cell
   inline bool hasLeaf(int i, int j, int k) const {
@@ -94,6 +102,11 @@ struct Foliage {
     float jx = 2.0f * hashf(h ^ 0xa511e9b3u) - 1.0f, jy = 2.0f * hashf(h ^ 0x63d83595u) - 1.0f, jz = 2.0f * hashf(h ^ 0x94d049bbu) - 1.0f;
     L.c = cc + V3(jx * room.x, jy * room.y, jz * room.z) * 0.98f;
     L.id = h;
+  }
+  inline bool onLeaflet(float u, float v) const {
+    if (combN <= 0.0f || std::fabs(v) < 0.1f) return true;       // simple leaf, or the rachis
+    float s = (u + 1.0f) * combN;
+    return s - std::floor(s) < combDuty;
   }
   // Deterministic leaf of cell (i,j,k), if any.
   bool leafIn(int i, int j, int k, Leaf& L) const {
@@ -157,7 +170,7 @@ struct Foliage {
               if (t > std::max(tc0 - 1e-5f, tmin) && t < std::min(tc1 + 1e-5f, t1)) {
                 V3 p = o + d * t - L.c;
                 float u = dot(p, L.t1) / L.a, v = dot(p, L.t2) / L.b;
-                if (u * u + v * v < 1.0f) { tHit = t; nHit = L.n; idHit = L.id; return true; }
+                if (u * u + v * v < 1.0f && onLeaflet(u, v)) { tHit = t; nHit = L.n; idHit = L.id; return true; }
               }
             }
           }
@@ -222,7 +235,7 @@ struct Foliage {
           if (t > std::max(tc0 - 1e-5f, tmin) && t < std::min(tc1 + 1e-5f, t1)) {
             V3 p = o + d * t - L.c;
             float u = dot(p, L.t1) / L.a, v = dot(p, L.t2) / L.b;
-            if (u * u + v * v < 1.0f) {
+            if (u * u + v * v < 1.0f && onLeaflet(u, v)) {
               tHit = t;
               nHit = L.n;
               idHit = L.id;
@@ -248,23 +261,18 @@ inline void buildFoliageOccupancy(Foliage& f) {
   f.bits.assign((ncell + 63) / 64, 0ull);
   f.bx = (f.nx + B - 1) / B; f.by = (f.ny + B - 1) / B; f.bz = (f.nz + B - 1) / B;
   f.occ.assign((size_t)f.bx * f.by * f.bz, 0);
-  // Slabs of 64 cells along x share one word, so rows can be filled in
-  // parallel without two threads writing the same word only if a row is a
-  // whole number of words; it is not in general, so draw into a byte buffer
-  // per z-slab and pack serially.
-  std::vector<uint8_t> draw(ncell, 0);
+  // Straight into the bitset with atomic ORs: a byte-per-cell staging buffer
+  // would be ~150 MB for a street ghaf at 1.4 cm cells.
+  uint64_t* bits = f.bits.data();
+  uint8_t* occ = f.occ.data();
 #pragma omp parallel for schedule(dynamic, 1)
   for (int k = 0; k < f.nz; k++)
     for (int j = 0; j < f.ny; j++)
-      for (int i = 0; i < f.nx; i++)
-        draw[((size_t)k * f.ny + j) * f.nx + i] = f.leafDraw(i, j, k) ? 1 : 0;
-  for (int k = 0; k < f.nz; k++)
-    for (int j = 0; j < f.ny; j++)
       for (int i = 0; i < f.nx; i++) {
+        if (!f.leafDraw(i, j, k)) continue;
         size_t c = ((size_t)k * f.ny + j) * f.nx + i;
-        if (!draw[c]) continue;
-        f.bits[c >> 6] |= 1ull << (c & 63);
-        f.occ[((size_t)(k / B) * f.by + j / B) * f.bx + i / B] = 1;
+        __atomic_fetch_or(&bits[c >> 6], 1ull << (c & 63), __ATOMIC_RELAXED);
+        __atomic_store_n(&occ[((size_t)(k / B) * f.by + j / B) * f.bx + i / B], (uint8_t)1, __ATOMIC_RELAXED);
       }
 }
 

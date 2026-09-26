@@ -59,6 +59,36 @@ inline V3 addLampPost(Scene& s, float x, float z, float armDirX, float height = 
   return V3(x, height - 0.35f, z);   // cable anchor
 }
 // Run-off under an opening or spout on a wall face (axis: wall normal axis).
+// Ghaf crowns: leaflets come on whole sprays (bipinnate leaves), so the
+// fringe of a crown is made of complete sprays with sky between them, never a
+// stipple of single leaves (which is what a looser spray edge produced).
+inline void ghafSprays(TreeSpec& t) {
+  t.sprayLo = 0.2f; t.sprayHi = 0.28f; t.sprayDens = 0.5f; t.fillBase = 0.8f; t.sprayBias = -0.04f;
+  // Leaflets at ghaf scale (~1 cm in 1.4 cm cells): sub-pixel at street
+  // distance, so a crown reads as feathery masses, not a stipple of dots or
+  // a lattice. Half the fill keeps the crown's opacity with 8x the cells.
+  t.cell = 0.014f; t.fill = 0.52f;
+}
+
+// A lantern bulb: a filament-sized sphere light (6 mm) so the pierced drum
+// throws crisp stars. Warm incandescent colour; radiance calibrated so a wall
+// 2 m away is lit a few times brighter than the city's night glow.
+inline void addBulb(Scene& s, V3 c, int group) {
+  s.lights.push_back({c, 0.006f, V3(4.7f, 2.9f, 1.3f), group});
+}
+
+// A pierced brass lantern on a wall bracket. `out` is the wall's outward
+// normal along X (+1 or -1); x is the wall face.
+inline void addWallLantern(Scene& s, float x, float out, float z, float ay, float scale, int group) {
+  float ax = x + out * 0.34f * scale / 0.85f * 0.85f;
+  s.addBox(V3(std::min(x, x + out * 0.012f), ay - 0.3f * scale, z - 0.05f), V3(std::max(x, x + out * 0.012f), ay + 0.06f, z + 0.05f), M_BRONZE, FALL, 0.003f);
+  s.addCapsule(V3(x + out * 0.01f, ay, z), V3(ax + out * 0.02f, ay, z), 0.009f, M_BRONZE);
+  s.addCapsule(V3(x + out * 0.01f, ay - 0.26f * scale, z), V3(x + out * 0.22f * scale, ay - 0.005f, z), 0.007f, M_BRONZE);
+  V3 pos(ax, ay - 0.524f * scale + 0.006f, z);
+  s.addSdf(SDF_LANTERN, pos, 15.0f, scale, {M_BRASS, M_LENS}, {s.nightLamps ? 1.0f : 0.0f});
+  addBulb(s, pos + V3(0.0f, 0.26f * scale, 0.0f), group);
+}
+
 inline void addStain(Scene& s, int axis, float plane, float u0, float u1, float yTop, float len, V3 tint, float strength) {
   Stain st;
   st.axis = axis; st.plane = plane; st.u0 = u0; st.u1 = u1; st.yTop = yTop; st.len = len; st.tint = tint;
@@ -231,10 +261,15 @@ inline void buildHouse(Scene& s) {
   // bottom and prints a disc of small stars on the stone.
   {
     const float LSC = 1.5f, LZ = 8.8f, LBOT = 3.1f, LLOOP = 0.524f;   // loop top, local units
-    s.addSdf(SDF_LANTERN, V3(CX, LBOT, LZ), 0.0f, LSC, {M_BRASS, M_LENS});
+    s.addSdf(SDF_LANTERN, V3(CX, LBOT, LZ), 0.0f, LSC, {M_BRASS, M_LENS}, {s.nightLamps ? 1.0f : 0.0f});
+    addBulb(s, V3(CX, LBOT + 0.26f * LSC, LZ), 1);
     s.addCapsule(V3(CX, LBOT + LLOOP * LSC - 0.004f, LZ), V3(CX, HC - 0.02f, LZ), 0.006f, M_BRONZE);
     s.addCyl(CX, LZ, 0.045f, HC - 0.025f, HC, M_BRONZE);                                 // ceiling rose
   }
+  // Two wall lanterns by the side doors: the east wall's teak door and the
+  // west wall's copper one. At night the three switch on one by one.
+  addWallLantern(s, CW, -1.0f, 10.35f, 2.7f, 0.85f, 2);
+  addWallLantern(s, 0.0f, 1.0f, 7.85f, 2.7f, 0.85f, 3);
 
   // ---- north wing, gate, street facade, wind tower ---------------------------------
   // The street runs north-south along the EAST facade. At 07:30 on 21 June the
@@ -271,7 +306,8 @@ inline void buildHouse(Scene& s) {
     s.addBox(V3(EF, AY - 0.3f, LZ - 0.05f), V3(EF + 0.012f, AY + 0.06f, LZ + 0.05f), M_BRONZE, FALL, 0.003f);   // wall plate
     s.addCapsule(V3(EF + 0.01f, AY, LZ), V3(AX + 0.02f, AY, LZ), 0.009f, M_BRONZE);                           // arm
     s.addCapsule(V3(EF + 0.01f, AY - 0.26f, LZ), V3(EF + 0.22f, AY - 0.005f, LZ), 0.007f, M_BRONZE);          // brace
-    s.addSdf(SDF_LANTERN, V3(AX, AY - 0.524f + 0.006f, LZ), 15.0f, 1.0f, {M_BRASS, M_LENS});
+    s.addSdf(SDF_LANTERN, V3(AX, AY - 0.524f + 0.006f, LZ), 15.0f, 1.0f, {M_BRASS, M_LENS}, {s.nightLamps ? 1.0f : 0.0f});
+    addBulb(s, V3(AX, AY - 0.524f + 0.006f + 0.26f, LZ), 4);
   }
   // plaster bench (dakka) along the facade, both sides of the gate
   s.addBox(V3(EF, 0.0f, NZ - 14.0f), V3(EF + 0.46f, 0.48f, GC - 1.6f), M_LIME, (uint8_t)(FALL & ~FX0), 0.03f);
@@ -380,14 +416,14 @@ inline void buildHouse(Scene& s) {
   // in the cross street in front of the shaded house, a smaller one in a
   // raised bed at the corner.
   TreeSpec ta; ta.base = V3(SW + 2.3f, 0.0f, -6.2f); ta.height = 6.8f; ta.crown = 3.4f; ta.trunkR = 0.2f;
-  ta.lean = V3(-0.35f, 0.0f, 0.05f); ta.seed = 11; ta.limbs = 7; ta.fill = 0.85f; ta.droop = 0.5f;
+  ta.lean = V3(-0.35f, 0.0f, 0.05f); ta.seed = 11; ta.limbs = 7; ta.fill = 0.85f; ghafSprays(ta); ta.droop = 0.5f;
   addTree(s, ta);
   TreeSpec tb; tb.base = V3(22.5f, 0.0f, FZ + 3.2f); tb.height = 7.4f; tb.crown = 3.7f; tb.trunkR = 0.22f;
-  tb.lean = V3(-0.1f, 0.0f, 0.1f); tb.seed = 23; tb.limbs = 7; tb.fill = 0.85f; tb.droop = 0.5f;
+  tb.lean = V3(-0.1f, 0.0f, 0.1f); tb.seed = 23; tb.limbs = 7; tb.fill = 0.85f; ghafSprays(tb); tb.droop = 0.5f;
   addTree(s, tb);
   s.addBox(V3(EF + 0.2f, 0.0f, SJ + 0.6f), V3(EF + 1.6f, 0.45f, SJ + 2.4f), M_LIME, FALL, 0.02f);
   TreeSpec tc; tc.base = V3(EF + 0.9f, 0.45f, SJ + 1.5f); tc.height = 5.0f; tc.crown = 2.3f; tc.trunkR = 0.13f;
-  tc.lean = V3(0.15f, 0.0f, 0.0f); tc.seed = 37; tc.limbs = 5; tc.fill = 0.85f; tc.droop = 0.45f;
+  tc.lean = V3(0.15f, 0.0f, 0.0f); tc.seed = 37; tc.limbs = 5; tc.fill = 0.85f; ghafSprays(tc); tc.droop = 0.45f;
   addTree(s, tc);
 
   // Run-off: green copper wash under every spout, grey water marks under sills.

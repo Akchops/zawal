@@ -13,6 +13,7 @@
 //   meta.json   sun position, time, camera — the HUD reads the same numbers
 #include <omp.h>
 
+#include <algorithm>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
@@ -66,6 +67,9 @@ struct Settings {
   int W = 960, H = 540, spp = 32, maxDepth = 6;
   uint32_t seed = 1;
   bool aerial = true;
+  // Indirect-only: everything except direct sunlight at the first surface
+  // the camera sees (for the live relight, which adds that one term itself).
+  bool indirect = false;
 };
 
 struct Aov {
@@ -86,6 +90,32 @@ struct Integrator {
   }
 
   static float powerH(float a, float b) { float a2 = a * a, b2 = b * b; return a2 / (a2 + b2 + 1e-30f); }
+
+  // ---- sphere lights (lantern bulbs) --------------------------------------
+  // Uniform choice of one light, then uniform sampling of the cone it
+  // subtends: pdf = 1 / (n * 2 pi (1 - cosMax)) in solid angle.
+  static bool lightCone(const Scene::SphereLight& Lg, V3 x, float& cosMax) {
+    V3 d = Lg.c - x;
+    float d2 = dot(d, d), r2 = Lg.r * Lg.r;
+    if (d2 <= r2 * 1.0001f) return false;
+    cosMax = std::sqrt(std::max(0.0f, 1.0f - r2 / d2));
+    return true;
+  }
+  float lightPdf(const Scene::SphereLight& Lg, V3 x) const {
+    float cm;
+    if (!lightCone(Lg, x, cm)) return 0.0f;
+    return 1.0f / ((float)sc.lights.size() * 2.0f * PI * std::max(1e-7f, 1.0f - cm));
+  }
+  bool hitLight(const Ray& r, float tmax, int& k, float& t) const {
+    bool any = false;
+    for (int i = 0; i < (int)sc.lights.size(); i++) {
+      float t0, t1;
+      if (!Scene::raySphereStable(r.o, r.d, sc.lights[i].c, sc.lights[i].r, t0, t1)) continue;
+      float th = t0 > 1e-4f ? t0 : t1;
+      if (th > 1e-4f && th < tmax) { tmax = th; k = i; t = th; any = true; }
+    }
+    return any;
+  }
 
   V3 sampleSunDir(float u1, float u2) const {
     float cosT = 1.0f - u1 * (1.0f - sky.sunCosMax);
@@ -149,13 +179,29 @@ struct Integrator {
     float lastPdf = 0.0f;
     float travelled = 0.0f;
     const float sunPdf = 1.0f / sky.sunSolidAngle;
+    bool firstDiffuse = true, prevFirst = false;
     for (int depth = 0; depth < set.maxDepth; depth++) {
       Hit h;
-      if (!sc.intersect(r, 1e-4f, INF, h)) {
+      bool hitScene = sc.intersect(r, 1e-4f, INF, h);
+      int lk = -1; float lt = 0.0f;
+      if (!sc.lights.empty() && hitLight(r, hitScene ? h.t : INF, lk, lt)) {
+        const Scene::SphereLight& Lg = sc.lights[lk];
+        float w = specular ? 1.0f : powerH(lastPdf, lightPdf(Lg, r.o));
+        L += beta * Lg.Le * w;
+        if (!aov.set) {
+          aov.albedo = V3(1.0f);
+          aov.normal = normalize(r.o + r.d * lt - Lg.c);
+          aov.depth = travelled + lt;
+          aov.sunvis = 0.0f;
+          aov.set = true;
+        }
+        break;
+      }
+      if (!hitScene) {
         V3 Le = sky.envLookup(r.d);
         float w = specular ? 1.0f : powerH(lastPdf, sky.pdfEnv(r.d));
         L += beta * Le * w;
-        if (dot(r.d, sky.sunDir) >= sky.sunCosMax) {
+        if (dot(r.d, sky.sunDir) >= sky.sunCosMax && !(set.indirect && prevFirst)) {
           float ws = specular ? 1.0f : powerH(lastPdf, sunPdf);
           note(2, prevMat, depth, lastPdf, ws, beta * sky.sunRadiance * ws);
           L += beta * sky.sunRadiance * ws;
@@ -233,7 +279,8 @@ struct Integrator {
 
       // --- next event: sun ---
       bool sunVisibleHere = false;
-      if (sky.sunTrans.x + sky.sunTrans.y + sky.sunTrans.z > 0.0f) {
+      bool skipSun = set.indirect && firstDiffuse;
+      if (!skipSun && sky.sunTrans.x + sky.sunTrans.y + sky.sunTrans.z > 0.0f) {
         V3 wi = sampleSunDir(rng.next(), rng.next());
         if (admissible(wi)) {
           V3 o = offsetFor(wi);
@@ -265,6 +312,33 @@ struct Integrator {
           }
         }
       }
+
+      // --- next event: a lantern bulb ---
+      if (!sc.lights.empty()) {
+        int k = std::min((int)(rng.next() * sc.lights.size()), (int)sc.lights.size() - 1);
+        const Scene::SphereLight& Lg = sc.lights[k];
+        float cm;
+        float u1 = rng.next(), u2 = rng.next();
+        if (lightCone(Lg, p, cm)) {
+          float cosT = 1.0f - u1 * (1.0f - cm), sinT = std::sqrt(std::max(0.0f, 1.0f - cosT * cosT)), ph = 2.0f * PI * u2;
+          V3 ax = normalize(Lg.c - p), t1v, t2v;
+          onb(ax, t1v, t2v);
+          V3 wi = normalize(t1v * (sinT * std::cos(ph)) + t2v * (sinT * std::sin(ph)) + ax * cosT);
+          float s0, s1;
+          if (admissible(wi) && Scene::raySphereStable(p, wi, Lg.c, Lg.r, s0, s1)) {
+            float tl = s0 > 1e-4f ? s0 : s1;
+            V3 o = offsetFor(wi);
+            if (!sc.occluded(Ray{o, wi}, 1e-4f, tl - 2e-3f)) {
+              float pl = lightPdf(Lg, p);
+              float pdfB;
+              V3 fl = evalBSDF(b, wo, wi, pdfB);
+              L += beta * fl * Lg.Le * (std::fabs(dot(b.n, wi)) * powerH(pl, pdfB) / pl);
+            }
+          }
+        }
+      }
+      prevFirst = firstDiffuse;
+      firstDiffuse = false;
 
       // --- continue the path ---
       V3 wi, f; float pdf;
@@ -332,10 +406,29 @@ int main(int argc, char** argv) {
   double minutes = parseClock(get("time", "12:20:43"));
   double lat = std::atof(get("lat", "25.2048").c_str()), lon = std::atof(get("lon", "55.2708").c_str());
 
+  set.indirect = a.count("indirect") && a["indirect"] != "0";
   Scene sc;
+  sc.nightLamps = a.count("lights") > 0;
   if (sceneName == "house") buildHouse(sc);
   else if (sceneName == "qudra") buildQudra(sc);
   else { std::fprintf(stderr, "unknown scene %s\n", sceneName.c_str()); return 2; }
+  // Lights: only the groups asked for (--lights 1,3); none by default.
+  {
+    std::vector<int> groups;
+    if (a.count("lights")) {
+      const std::string& g = a["lights"];
+      for (size_t i = 0; i < g.size();) {
+        size_t j = g.find(',', i);
+        groups.push_back(std::atoi(g.substr(i, j == std::string::npos ? std::string::npos : j - i).c_str()));
+        if (j == std::string::npos) break;
+        i = j + 1;
+      }
+    }
+    std::vector<Scene::SphereLight> keep;
+    for (auto& Lg : sc.lights)
+      if (std::find(groups.begin(), groups.end(), Lg.group) != groups.end()) keep.push_back(Lg);
+    sc.lights = keep;
+  }
   sc.build();
 
   CameraDesc cd;
@@ -349,6 +442,13 @@ int main(int argc, char** argv) {
   cam.setup(cd, set.W, set.H, a.count("vfov") > 0, a.count("vfov") ? std::atof(a["vfov"].c_str()) : 0.0f);
 
   SunPos sp = solarPosition(year, month, day, minutes, lat, lon);
+  if (a.count("sunalt") && a.count("sunaz")) {
+    // An explicit sun (the relight basis): any position, date-free.
+    sp.altitudeDeg = std::atof(a["sunalt"].c_str());
+    sp.azimuthDeg = std::atof(a["sunaz"].c_str());
+    double al = deg2rad(sp.altitudeDeg), az = deg2rad(sp.azimuthDeg);
+    sp.dir = normalize(V3((float)(std::cos(al) * std::sin(az)), (float)std::sin(al), (float)(-std::cos(al) * std::cos(az))));
+  }
   // Scene orientation: rotate the world sun direction into the scene's local
   // frame (buildings are modelled axis-aligned; the site is not).
   float orientDeg = a.count("orient") ? std::atof(a["orient"].c_str()) : (sceneName == "house" ? HOUSE_ORIENT_DEG : 0.0f);
@@ -362,6 +462,7 @@ int main(int argc, char** argv) {
   if (sceneName == "qudra") { ap.aod = 0.45f; ap.angstrom = 0.2f; }   // inland desert: more, coarser dust
   if (a.count("aod")) ap.aod = std::atof(a["aod"].c_str());
   Sky sky;
+  if (a.count("nightglow")) std::sscanf(a["nightglow"].c_str(), "%f,%f,%f", &sky.nightGlow.x, &sky.nightGlow.y, &sky.nightGlow.z);
   auto t0 = std::chrono::steady_clock::now();
   sky.build(sp.dir, ap, sceneName == "qudra" ? 0.40f : 0.34f);
   auto t1 = std::chrono::steady_clock::now();

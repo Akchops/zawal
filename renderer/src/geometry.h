@@ -104,6 +104,11 @@ struct Scene {
   std::vector<SdfObj> sdfs;        // small-object library instances
   std::vector<Foliage> foliage;    // leaf-cell canopies
   std::vector<Stain> stains;       // run-off streak sources (weathering)
+  // Sphere lights (lantern bulbs at night). Not in the BVH: the integrator
+  // tests them explicitly and samples them for next-event estimation.
+  struct SphereLight { V3 c; float r; V3 Le; int group; };
+  std::vector<SphereLight> lights;
+  bool nightLamps = false;         // build lanterns for the night (no frosted bulb)
   float groundY = 0.0f;
   int groundMat = -1;              // -1: no infinite ground
 

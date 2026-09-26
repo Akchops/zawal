@@ -45,6 +45,7 @@ struct Sky {
 
   AtmosphereParams P;
   float groundAlbedo = 0.32f;
+  V3 nightGlow = V3(0.0f);
 
   // ---- atmosphere model -------------------------------------------------
   static constexpr float Re = 6360e3f, Ra = 6420e3f;
@@ -196,6 +197,12 @@ struct Sky {
           V3 Lh, Th;
           integrate(normalize(V3(d.x, 0.002f, d.z)), 1e9f, Lh, Th);
           L += Lh * 0.35f;
+        }
+        // City glow: after dusk Dubai's sky is lit from below by the city,
+        // warm and brightest toward the horizon. Zero unless asked for.
+        if (maxc(nightGlow) > 0.0f) {
+          float up = std::max(0.0f, d.y);
+          L += nightGlow * (d.y > -0.02f ? 0.3f + 0.7f * std::pow(1.0f - up, 3.0f) : 0.25f);
         }
         env[(size_t)j * W + i] = L;
       }
