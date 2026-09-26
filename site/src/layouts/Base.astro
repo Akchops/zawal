@@ -96,7 +96,10 @@ const root = depth ? "../".repeat(depth) : "./";
     padding: max(14px, env(safe-area-inset-top)) var(--margin) 14px;
     pointer-events: none;
     mix-blend-mode: difference;
+    transition: transform 360ms var(--ease-ui);
   }
+  .nav.away { transform: translateY(-110%); }
+  .rm .nav, .rm .nav.away { transform: none; transition: none; }
   .nav a, .nav button { pointer-events: auto; color: #f7f3ea; }
   .nav-mark {
     font-family: var(--f-display); font-stretch: 125%; font-weight: 400; font-size: 17px;

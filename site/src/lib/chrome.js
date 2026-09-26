@@ -23,3 +23,20 @@ document.addEventListener("click", (e) => {
   if (!a || a.target || e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey) return;
   document.documentElement.dataset.vt = a.dataset.vt || "stars";
 });
+
+// The nav steps out of the way while reading down and comes back on the way
+// up (or near the top), so it never sits over a line being read.
+const nav = document.querySelector("[data-nav]");
+if (nav) {
+  let lastY = scrollY, ticking = false;
+  addEventListener("scroll", () => {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(() => {
+      const y = scrollY, dy = y - lastY;
+      if (Math.abs(dy) > 6) { nav.classList.toggle("away", dy > 0 && y > 120); lastY = y; }
+      ticking = false;
+    });
+  }, { passive: true });
+  nav.addEventListener("focusin", () => nav.classList.remove("away"));
+}
