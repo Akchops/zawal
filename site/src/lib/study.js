@@ -132,6 +132,8 @@ export function studySvg(model, { sc = 20, id = "study", title = "", ground = fa
   if (ground) {
     out.push(`<path class="ground" fill-rule="evenodd" d="M-6000,-6000H6000V6000H-6000Z${d}"/>`);
     out.push(`<path class="plot-fill" fill-rule="evenodd" d="M0,0H${W}V${H}H0Z${d}"/>`);
+    // Covers the hole until the aperture opens, so the drawing does not give it away.
+    out.push(`<path class="hole-cover" d="${d || "M0 0"}"/>`);
   }
   out.push(`<g class="ink">`);
   out.push(`<rect class="plot" x="0" y="0" width="${W}" height="${H}"/>`);

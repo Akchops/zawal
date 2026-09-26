@@ -2,7 +2,10 @@
   "home": {
     "title": "ZAWAL: architecture measured in shade",
     "description": "A Dubai architecture and interiors studio that designs from the shade outward. A fictional studio: this site is a design demonstration.",
-    "coldOpen": { "kicker": "Dubai · 25.2° N · 21 June", "scrollHint": "Scroll to walk in" },
+    "coldOpen": {
+      "kicker": "Dubai · 25.2° N · 21 June",
+      "scrollHint": "Scroll to walk in"
+    },
     "street": "Dubai. The longest day of the year.",
     "gate": "The most valuable thing a building gives here is shade.",
     "morning": "The canopy throws its pattern 1.65 m for every metre of height.",
@@ -10,7 +13,10 @@
     "zawal": "Shadows are 3 cm long for every metre. We design every building for this hour.",
     "afternoon": "The rest of the day is the building's job.",
     "handover": "The sun has set. Take it.",
-    "sunHint": { "pointer": "Move the sun", "touch": "Drag sideways to move the sun · tap to place it" },
+    "sunHint": {
+      "pointer": "Move the sun · or use ← →",
+      "touch": "Drag sideways to move the sun · tap to place it"
+    },
     "sunNever": "No day in Dubai has this sun.",
     "studyTitle": "Every project starts with one drawing.",
     "studyLine": "The shadows a site receives on 21 June, hour by hour. The gaps between them become the building.",
@@ -21,20 +27,44 @@
     "nightTime": "20:30"
   },
   "nav": [
-    { "label": "Work", "href": "/work/ghaf-house/" },
-    { "label": "Shade Study", "href": "/shade-study/" },
-    { "label": "Studio", "href": "/studio/" },
-    { "label": "Contact", "href": "/studio/#contact" }
+    {
+      "label": "Work",
+      "href": "/work/ghaf-house/"
+    },
+    {
+      "label": "Shade Study",
+      "href": "/shade-study/"
+    },
+    {
+      "label": "Studio",
+      "href": "/studio/"
+    },
+    {
+      "label": "Contact",
+      "href": "/studio/#contact"
+    }
   ],
   "shadeStudy": {
     "title": "The Shade Study",
     "lede": "Before we design anything, we find out where the shade falls. You can commission the study on its own.",
     "instrument": "Pick a date and an hour, or drag the sun. The courtyard is lit live, with the same solar equations our renderer uses.",
     "deliver": [
-      ["A 3D model of the site", "Your plot and everything around it that casts a shadow, from survey or drawings."],
-      ["Shadow plots for the design days", "21 June, the equinoxes and 21 December, every hour from sunrise to sunset."],
-      ["Shade hours per square metre", "A map of how long each part of the site is in shade on each design day."],
-      ["Tests of your screens and canopies", "Real-sun checks of every screen, overhang and canopy before it is detailed."]
+      [
+        "A 3D model of the site",
+        "Your plot and everything around it that casts a shadow, from survey or drawings."
+      ],
+      [
+        "Shadow plots for the design days",
+        "21 June, the equinoxes and 21 December, every hour from sunrise to sunset."
+      ],
+      [
+        "Shade hours per square metre",
+        "A map of how long each part of the site is in shade on each design day."
+      ],
+      [
+        "Tests of your screens and canopies",
+        "Real-sun checks of every screen, overhang and canopy before it is detailed."
+      ]
     ],
     "cta": "Commission a Shade Study",
     "who": "For architects, landscape architects and developers."

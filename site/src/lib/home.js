@@ -81,11 +81,23 @@ async function start() {
     date: stage.querySelector("[data-hud-date]"), time: stage.querySelector("[data-hud-time]"),
     alt: stage.querySelector("[data-hud-alt]"), az: stage.querySelector("[data-hud-az]"), shadow: stage.querySelector("[data-hud-shadow]"),
   };
+  // The sun-path glyph: the dot rides the arc by azimuth (east left, west
+  // right) and sits lower on it the lower the sun; below the horizon it drops.
+  const hudDot = stage.querySelector("[data-hud-dot]");
+  let dotLast = "";
+  const placeDot = (alt, az) => {
+    const u = clamp01((az - 60) / 240);
+    const x = 1 + 28 * u, arcY = (1 - u) * (1 - u) * 12 + 2 * u * (1 - u) * -11 + u * u * 12;   // the quadratic arc
+    const y = alt > 0 ? arcY + (12 - arcY) * (1 - Math.min(1, alt / 60)) * 0.35 : 12 + Math.min(4, -alt / 4);
+    const v = `${x.toFixed(1)},${y.toFixed(1)}`;
+    if (v !== dotLast) { dotLast = v; hudDot.setAttribute("cx", x.toFixed(1)); hudDot.setAttribute("cy", y.toFixed(1)); }
+  };
   let sunAlt = 24.66;
   const hudLast = {};
   const setText = (k, v) => { if (hudLast[k] !== v) { hudLast[k] = v; hud[k].textContent = v; } };
   const hudSun = (date, time, alt, az) => {
     sunAlt = alt;
+    placeDot(alt, az);
     setText("date", date);
     setText("time", time);
     setText("alt", `${alt.toFixed(alt < 10 && alt > -10 ? 2 : 1)}°`);
@@ -96,21 +108,28 @@ async function start() {
   const hudOff = (off) => hudEl.classList.toggle("off", off);
 
   // ---------------- walk and day ----------------
-  const [ib, ia] = await Promise.all([getJSON(`/seq/b-${t}.json`), getJSON(`/seq/a-${t}.json`)]);
+  // A sequence that cannot load (network, or not rendered for this screen)
+  // must not take the rest of the film with it: its player becomes inert,
+  // the first picture stays up, and every later scene still runs.
+  const [ib, ia] = await Promise.all([getJSON(`/seq/b-${t}.json`).catch(() => null), getJSON(`/seq/a-${t}.json`).catch(() => null)]);
+  const inert = (m) => ({ size: [16, 9], frames: [{ m, cam: null }], zawal: 0, inert: true });
   const mk = (canvas, idx, base, mode, rest) => {
+    if (idx.inert) return { dirty: false, shimmer: 0, pending: new Map(), set() {}, draw() {}, resize() {}, start: async () => {}, onFirstDraw() {}, index: idx };
     const p = new SequencePlayer({ canvas, base, mode, rest, aspect: idx.size[0] / idx.size[1], frames: idx.frames.map((f) => ({ cam: f.cam, minutes: f.m })) });
     p.index = idx;
     return p;
   };
-  const pb = mk(cvB, ib, `/seq/b-${t}`, "camera", restB);
-  const pa = mk(cvA, ia, `/seq/a-${t}`, "time", []);
+  const pb = mk(cvB, ib || inert(450), `/seq/b-${t}`, "camera", restB);
+  const pa = mk(cvA, ia || inert(1130), `/seq/a-${t}`, "time", []);
   pb.wake = pa.wake = wake;
-  const zawal = ia.zawal ?? 48;
-  const nA = ia.frames.length, nB = ib.frames.length;
+  const IA = pa.index, IB = pb.index;
+  const zawal = IA.zawal ?? 48;
+  const nA = IA.frames.length, nB = IB.frames.length;
   const mapB = [[0, 0], [1.5, 36], [2.5, 60], [3.5, 84], [4, nB - 1]];
   const mapA = [[4, 0], [6, zawal], [7.5, zawal + 6], [9.5, nA - 1]];
   const minutesAt = (idx, f) => {
-    const i0 = Math.floor(f), i1 = Math.min(i0 + 1, idx.frames.length - 1);
+    const last = idx.frames.length - 1;
+    const i0 = Math.max(0, Math.min(last, Math.floor(f))), i1 = Math.min(i0 + 1, last);
     return idx.frames[i0].m + (idx.frames[i1].m - idx.frames[i0].m) * (f - i0);
   };
 
@@ -125,10 +144,11 @@ async function start() {
   }
   let user = null, userBeat = -1, sunNow = null, blendFrom = null, blendT = 1;
   const inC = (b) => b >= 9.9 && b < 12.1;
-  const placeSun = (s) => { user = s; userBeat = beatNow(); blendT = 1; };
+  // Input moves the sun now, not on the next scroll tick.
+  const placeSun = (s) => { user = s; userBeat = beatNow(); blendT = 1; applySun(s); wake(); };
   // Idle, the sun rewinds across the sky with the scroll: from the hand-over
   // (the day's last frame) back to just after sunrise.
-  const xHand = (ia.frames[nA - 1].m - 332) / (1149 - 332);
+  const xHand = (IA.frames[nA - 1].m - 332) / (1149 - 332);
   const idleSun = (b) => { const r = ramp(b, 9.9, 11.9); return sunOnJune21(xHand * (1 - r) + 0.02 * r); };
   const applySun = (s) => {
     sunNow = s;
@@ -142,8 +162,8 @@ async function start() {
     else if (sunOK === false && s.minutes != null) {
       // Canvas 2D / no relight: the day's own frames, nearest to that minute.
       let f = 0;
-      for (let i = 0; i < nA; i++) if (ia.frames[i].m <= s.minutes) f = i;
-      const m0 = ia.frames[f].m, m1 = ia.frames[Math.min(f + 1, nA - 1)].m;
+      for (let i = 0; i < nA; i++) if (IA.frames[i].m <= s.minutes) f = i;
+      const m0 = IA.frames[f].m, m1 = IA.frames[Math.min(f + 1, nA - 1)].m;
       pa.set(f + (m1 > m0 ? clamp01((s.minutes - m0) / (m1 - m0)) : 0));
     }
   };
@@ -168,6 +188,16 @@ async function start() {
   stage.addEventListener("pointerdown", (e) => { if (e.pointerType !== "mouse") { dragging = true; moved = false; downX = e.clientX; downY = e.clientY; } }, { passive: true });
   stage.addEventListener("pointerup", (e) => { if (e.pointerType !== "mouse") { onPointer(e); dragging = false; } }, { passive: true });
   stage.addEventListener("pointercancel", () => { dragging = false; }, { passive: true });
+  // Keyboard: left/right move the sun along the 21 June path (vertical keys
+  // keep scrolling the page).
+  let keyX = null;
+  addEventListener("keydown", (e) => {
+    if (!inC(beatNow()) || (e.key !== "ArrowLeft" && e.key !== "ArrowRight")) return;
+    const cur = sunNow?.minutes != null ? (sunNow.minutes - 332) / (1149 - 332) : keyX ?? xHand;
+    keyX = clamp01(cur + (e.key === "ArrowRight" ? 0.02 : -0.02));
+    placeSun(sunOnJune21(keyX));
+    e.preventDefault();
+  });
   // Tilt: an opt-in sundial (iOS asks permission on the tap).
   const tiltBtn = stage.querySelector("[data-sun-tilt]");
   if (touch && "DeviceOrientationEvent" in window) {
@@ -238,12 +268,12 @@ async function start() {
     const f = pw(mapB, b);
     pb.set(f);
     pb.shimmer = 1 - clamp01((f - 26) / 20);
-    if (b < 4) hudMinutes(minutesAt(ib, f));
+    if (b < 4) hudMinutes(minutesAt(IB, f));
   });
   scene(4, 10, (p, b) => {
     const f = pw(mapA, b);
     if (!(inC(b) && sunOK === false)) pa.set(f);
-    if (b < 9.9) hudMinutes(minutesAt(ia, f));
+    if (b < 9.9) hudMinutes(minutesAt(IA, f));
   });
   scene(9.5, 12.4, (p, b, inside) => {
     // Hand-over: the relight fades up over the day's identical last frame.
@@ -287,6 +317,8 @@ async function start() {
     // The drawing lifts off the sheet; only the footprint's hole remains, and grows.
     const ink = studySvgEl?.querySelector(".ink");
     if (ink) ink.style.opacity = String(1 - ramp(b, 13.58, 13.78));
+    const cover = studySvgEl?.querySelector(".hole-cover");
+    if (cover) cover.style.visibility = b < 13.56 ? "visible" : "hidden";
     studyText.style.opacity = String(1 - ramp(b, 13.55, 13.8));
   });
   scene(13.4, 26.6, (p, b, inside) => {

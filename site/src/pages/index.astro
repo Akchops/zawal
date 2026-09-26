@@ -44,7 +44,7 @@ const P = (n: string) => `/img/posters/${n}`;
       <div class="hud mono" data-hud aria-hidden="true">
         <span data-hud-date>21·06</span>
         <span data-hud-time>07:30:00</span>
-        <span class="hud-sun"><svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="3.2" /></svg><span data-hud-alt>24.66°</span> / <span data-hud-az>74.5°</span></span>
+        <span class="hud-sun"><svg viewBox="0 0 30 13" aria-hidden="true"><path class="hud-arc" d="M1,12 Q15,-11 29,12" /><circle class="hud-dot" data-hud-dot cx="6.4" cy="6.9" r="2.3" /></svg><span data-hud-alt>24.66°</span> / <span data-hud-az>74.5°</span></span>
         <span data-hud-shadow>shadow 2.17 × h</span>
       </div>
 
@@ -267,7 +267,7 @@ const P = (n: string) => `/img/posters/${n}`;
   .study-plot :global(.ground) { fill: var(--sand); }
   :global(html:not(.js)) .study-plot :global(.ground), :global(html.rm) .study-plot :global(.ground) { display: none; }
   .study-plot :global(.plot) { fill: none; stroke: rgba(15, 20, 24, 0.5); stroke-width: 1; }
-  .study-plot :global(.plot-fill) { fill: #efe6d6; }
+  .study-plot :global(.plot-fill), .study-plot :global(.hole-cover) { fill: #efe6d6; }
   .study-plot :global(.shadow) { fill: rgba(15, 20, 24, 0.035); stroke: #0f1418; stroke-width: 1; vector-effect: non-scaling-stroke; }
   .study-plot :global(.hour.now .shadow) { stroke: var(--copper-deep); stroke-width: 1.6; }
   .study-plot :global(.hour-label) { font-family: var(--f-mono); font-size: 13px; fill: #6e675d; letter-spacing: 0.06em; }
@@ -332,7 +332,9 @@ const P = (n: string) => `/img/posters/${n}`;
   }
   .hud.off { opacity: 0; }
   .hud-sun { display: inline-flex; align-items: center; gap: 5px; }
-  .hud svg { width: 11px; height: 11px; fill: var(--copper); }
+  .hud svg { width: 26px; height: 12px; overflow: visible; }
+  .hud-arc { fill: none; stroke: currentColor; stroke-width: 1; opacity: 0.55; }
+  .hud-dot { fill: var(--copper); }
   @media (max-width: 767px) {
     .hud { left: var(--margin); right: var(--margin); bottom: calc(28px + env(safe-area-inset-bottom)); justify-content: space-between; gap: 8px; }
     .hud [data-hud-shadow] { display: none; }
