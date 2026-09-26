@@ -14,7 +14,7 @@
 import { SequencePlayer } from "./player.js";
 import { Compositor } from "./compositor.js";
 import { SunStage, sunFromPointer, sunOnJune21, describeSun } from "./sun.js";
-import { mountFilm, scene, everyFrame, smoothWheel, beatNow } from "./scroll.js";
+import { mountFilm, scene, everyFrame, smoothWheel, beatNow, wake } from "./scroll.js";
 import { solarPosition, clock } from "./solar.js";
 import { studyDriver, markCentre } from "./study.js";
 import { url } from "./paths.js";
@@ -104,6 +104,7 @@ async function start() {
   };
   const pb = mk(cvB, ib, `/seq/b-${t}`, "camera", restB);
   const pa = mk(cvA, ia, `/seq/a-${t}`, "time", []);
+  pb.wake = pa.wake = wake;
   const zawal = ia.zawal ?? 48;
   const nA = ia.frames.length, nB = ib.frames.length;
   const mapB = [[0, 0], [1.5, 36], [2.5, 60], [3.5, 84], [4, nB - 1]];
@@ -207,6 +208,7 @@ async function start() {
 
   // ---------------- D, method, night: the compositor ----------------
   const comp = new Compositor(cvComp);
+  comp.wake = wake;
   const slugs = [...stage.querySelectorAll("[data-project]")].map((el) => el.dataset.project);
   const projectsMeta = slugs.map((slug) => {
     const el = stage.querySelector(`[data-project="${slug}"]`);
@@ -247,7 +249,7 @@ async function start() {
     // Hand-over: the relight fades up over the day's identical last frame.
     if (b >= 9.5 && sunOK === null) {
       sunOK = false;
-      sunStage.start().then((ok) => { sunOK = ok; if (ok) { sunStage.resize(); applySun(sunNow || idleSun(beatNow())); } }).catch(() => { sunOK = false; });
+      sunStage.start().then((ok) => { sunOK = ok; if (ok) { sunStage.resize(); applySun(sunNow || idleSun(beatNow())); } wake(); }).catch(() => { sunOK = false; });
     }
     cvSun.style.opacity = String(ease(ramp(b, 9.55, 10.0)));
     if (!inside) return;
@@ -362,7 +364,7 @@ async function start() {
     else if (b < 10.2 || (inC(b) && sunOK === false)) pa.draw(time);
     if (b >= 9.5 && b < 12.4 && sunOK) sunStage.draw();
     if (b >= 13.4) comp.draw();
-    let again = b < 4 && pb.shimmer > 0;
+    let again = (b < 4 && pb.shimmer > 0) || (b < 4 ? pb.dirty : b < 10.2 && pa.dirty);
     if (b >= 13.4 && comp.dirty) again = true;          // images still arriving
     if (b >= 9.9 && b < 12.4 && blendT < 1) again = true;
     return again;

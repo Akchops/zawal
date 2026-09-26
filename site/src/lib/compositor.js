@@ -113,8 +113,8 @@ export class Compositor {
     if (!v) {
       v = fetch(url(src)).then((r) => r.blob())
         .then((b) => createImageBitmap(b, raw ? { colorSpaceConversion: "none", premultiplyAlpha: "none" } : {}))
-        .then((bm) => { this.images.set(src, bm); this.dirty = true; return bm; })
-        .catch(() => { this.images.set(src, "failed"); this.dirty = true; return null; });
+        .then((bm) => { this.images.set(src, bm); this.dirty = true; this.wake?.(); return bm; })
+        .catch(() => { this.images.set(src, "failed"); this.dirty = true; this.wake?.(); return null; });
       this.images.set(src, v);
     }
     return v;

@@ -53,6 +53,9 @@ function schedule() {
 
 const drawers = new Set();
 export function everyFrame(fn) { drawers.add(fn); schedule(); }
+/** Something became drawable without a scroll (a frame decoded, an image
+ *  arrived): run one more tick so it is shown now, not on the next scroll. */
+export function wake() { schedule(); }
 
 function tick(t) {
   raf = 0;

@@ -113,6 +113,8 @@ void main() {
 }`;
 
 const LOG_DMIN = Math.log(0.25), LOG_RANGE = Math.log(400 / 0.25);
+// ?noblend shows the nearest frame only: the slideshow the blend replaces (QA).
+const NOBLEND = typeof location !== "undefined" && new URLSearchParams(location.search).has("noblend");
 
 async function streamBundle(url, index, onFrame, signal) {
   const res = await fetch(siteUrl(url), { signal });
@@ -179,7 +181,7 @@ export class SequencePlayer {
     // The sharp still of the frame the page opens on comes first, on its own:
     // the bundles wait for it (at most 2.5 s), so it never shares the line.
     const rests = this.rest.map((r) => fetch(siteUrl(r.url), { signal: this.abort.signal }).then((res) => res.blob())
-      .then((b) => createImageBitmap(b)).then((bm) => { this.restBmp.set(r.index, bm); this.dirty = true; })
+      .then((b) => createImageBitmap(b)).then((bm) => { this.restBmp.set(r.index, bm); this.dirty = true; this.wake?.(); })
       .catch(() => {}));
     if (rests.length) await Promise.race([Promise.all(rests), new Promise((r) => setTimeout(r, 2500))]);
     // Ladder first (a few hundred kB for the whole sequence), then depth, then full frames.
@@ -224,6 +226,7 @@ export class SequencePlayer {
         if (!want.has(key) && !this.isWanted(key)) { bm.close(); return; }
         this.bmp.set(key, bm);
         this.dirty = true;
+        this.wake?.();
       }).catch(() => this.pending.delete(key));
       this.pending.set(key, p);
     }
@@ -286,8 +289,12 @@ export class SequencePlayer {
   /** Draws if anything changed. Call once per animation frame. */
   draw(time = 0) {
     if (!this.dirty && this.shimmer <= 0) return;
+    // A canvas that was hidden when the player started has no size yet.
+    const cw = Math.round(this.canvas.clientWidth * Math.min(window.devicePixelRatio || 1, 2));
+    if (cw && Math.abs(cw - this.canvas.width) > 1) this.resize();
     const i0 = Math.floor(this.f), i1 = Math.min(i0 + 1, this.n - 1);
     let t = this.f - i0;
+    if (NOBLEND) t = t < 0.5 ? 0 : 1;              // QA baseline only: the slideshow
     // Resting on a frame that has a hi-res still: show the still, sharpest.
     const rest = this.restBmp.get(Math.round(this.f));
     if (rest && Math.abs(this.f - Math.round(this.f)) < 0.02) return this.drawStill(rest, time);
