@@ -317,8 +317,23 @@ Done in the order asked, **before** any sequence frame is rendered, so none of i
 - **Order:** (1) SEQ-B frame 0, the first beat → (2) SEQ-B portrait, even frames (49, the phone tier) → (3) SEQ-A portrait, even frames (61) → *the build and phone QA start here* → (4) SEQ-B and SEQ-A landscape (desktop) → (5) portrait odd frames (tablets held in portrait use the phone tier until these land).
 - **Estimates at 32 spp:** phone set ≈ 4 h; desktop set ≈ 12 h; tablet-portrait fill ≈ 4 h; stills and C/D buffers ≈ 3 h.
 
-### 9.4 The first beat on a phone
-Before the street is fully visible, a phone downloads the HTML document and SEQ-B frame 0. The document carries inline critical CSS, the boot script and a 208-byte blurred poster, so the street's shape paints from the first response; its budget is ≤ 14 kB gzip, to be confirmed on the built page in Phase 3. Frame 0, measured on the realism-pass portrait frame, is **16.5 kB** as a 720×1280 WebP at q72 (13.7 kB at q60; AVIF is no smaller here, 17.5 kB). **So a phone downloads ≈ 30 kB before the street is fully visible**, and ~14 kB before its blurred shape is. Fonts, GSAP and the rest of the sequence load after first paint and never block the picture. On desktop, frame 0 is 37.5 kB at 1600×900 (24.8 kB at 1280×720).
+### 9.4 The first beat on a phone (superseded by check 3, below)
+*Original plan:* the first beat was SEQ-B frame 0 at 720×1280, 16.5 kB at q72. **That was a quick version and is not what ships.** See §9.5.
+
+### 9.5 The three checks before the long render (after approval)
+1. **Sample count (check 1): passed at 32 spp.** Three real sequence frames (the street, the darkest frame in the gate passage, zawal) rendered at the planned 32 spp, beside the proof frames at 100 %: the 32 spp masters match the proofs in fine detail. What had looked softer was the WebP encode (q72), not the samples, so the tiers were raised to q84 (walk) and q80 (day). The passage at its planned samples is within about one grey level (RMSE) of a 256 spp reference. Render time unchanged (≈ 22–27 h all in, under the 30 h cap).
+2. **Smooth scrubbing (check 2).** Phones get every master frame (121 and 97), and the player never shows a bare frame between two: the day (A) is blended in linear light by the fractional frame position; the walk (B) reprojects both neighbouring frames to the in-between camera with their depth maps, then blends. Tested headless with `qa/scrub.mjs` (a slow scroll, one screenshot per 3 px) and `qa/scrub_metrics.py` against the same run with blending off (`?noblend`). SEQ-A, frames 0–14, phone: **blended, every step changes a little (largest step 1.9× the median, no frozen steps); the slideshow freezes on 82 % of steps and jumps at each frame boundary.** The same test runs on the whole phone set, both sequences, before the desktop render starts.
+3. **The first frame (check 3).** The 16.5 kB frame was a quick version. What ships is a dedicated still of the street at 07:30, rendered at 1440×2560 and 64 spp (portrait) and 2560×1440 at 48 spp (landscape), in tiers: 720 / 1080 / 1440 portrait (28 / 52 / 84 kB), 1280 / 1600 / 2560 landscape (38 / 55 / 123 kB). The page paints the 720 (phones) or 1280 (desktop) first, inside the first-load budget, and the player swaps in the tier for the screen's density as soon as the page has loaded, before any sequence bundle is fetched. 100 % crops of the phone tiers: `docs/checks/check3_first_frame_100pct.png`.
+
+### 9.6 Project scenes (signature D), and two hours corrected
+- **Ghaf House, 16:10.** A 14 m courtyard around an old ghaf on a limestone drum, seen from the shaded west loggia; the tree's dappled shade on the limewashed east wing.
+- **Hotel Sikka, 11:10 (was 09:40).** At 09:40 the sun (53.5°, from the east) is shaded by the 9 m east wall before it reaches a roof inside the lane, so nothing lands. The palm-rib roof now sits on the wall tops: at 11:10 (73.8°) its lines fall high on the west wall while the lane floor stays in shade, which is exactly what the project text claims.
+- **Mushrif Reading Rooms, 18:05 (was 16:30).** A 45 cm screen passes little direct sun at 16:30 (33.7°). The screen's holes are now carved along the sun's ray at 18:05 on 21 June (the renderer's lattice gained an angled-carving shear), so at noon the screen passes no direct sun at all and in the late afternoon the stars come through whole. Measured window (sunlit share of the room): rising from ≈ 17:20, above 75 % of its peak from ≈ 17:50 to 18:35, peak at 18:05. The copy says so.
+- **Qudra Canopy, 13:40**, unchanged, at Al Qudra's own latitude.
+- Each hero is rendered with the renderer's sun-visibility AOV; the morph mask is its signed distance field at ¼ size, smoothed so whole patches of light move (17–20 kB each, lossless).
+
+### 9.7 First load, measured
+`site/scripts/check-budget.mjs` loads every page in Chromium and counts everything fetched before the load event (text gzipped, images and fonts as sent). Current results: home 82.9 kB (phone) / 92.6 kB (desktop); project page 51.9 / 97.7 kB; Shade Study 62.2 kB; Studio 55.6 kB. How: the film's script (18 kB gzip) is imported after the load event; the cold open's reveal is CSS; still images the static article shares with the first paint use the same files; project heroes first paint a 960/540 tier and swap in the sharp set after load.
 
 ---
 
@@ -328,7 +343,7 @@ Before the street is fully visible, a phone downloads the HTML document and SEQ-
 - WebGL capability probe (silent, `failIfMajorPerformanceCaveat`, context released) → Canvas 2D tier → static frame in the DOM.
 - Reduced motion: every sequence becomes its key stills with full captions; no pins; no Lenis.
 - No JS: the prerendered page is a readable long-form article with the poster frames and all copy.
-- First load < 100 kB gzip (HTML + CSS + entry JS). GSAP loads by dynamic import after first paint; no three.js.
+- First load < 100 kB, measured per page and device class in a real browser (HTML, CSS, scripts, fonts and the first-paint image; text gzipped): §9.7. No three.js; GSAP is not needed by the built pages (the drawing, reveals and morphs are plain CSS, SVG and raw WebGL), so nothing of it ships.
 
 ## 11. Biggest risks
 1. **Render realism** (the brief's biggest risk). See §9.1 for the frank read.
