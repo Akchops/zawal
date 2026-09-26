@@ -1,0 +1,14 @@
+{
+  "home": {
+    "title": "A plot in Jumeirah on 21 June: the shadows of a tall block, a neighbour's house, a boundary wall and an old ghaf, hour by hour, and the part of the plot they leave in sun.",
+    "w": 34,
+    "h": 30,
+    "casters": [
+      { "box": [[23, 20], [34, 20], [34, 30], [23, 30]], "h": 16 },
+      { "box": [[0, 22], [9, 22], [9, 30], [0, 30]], "h": 7.5 },
+      { "box": [[0, 0], [0.5, 0], [0.5, 22], [0, 22]], "h": 3.2 },
+      { "circle": [17, 11, 4.2], "h": 7 }
+    ],
+    "highlight": { "below": 3 }
+  }
+}

@@ -16,6 +16,7 @@
 
 import { FULLSCREEN_VS, coverUv, fullscreenTriangle, program, texture, webglTier } from "./gl.js";
 import { camUniform, cameraFrom, lerpCam } from "./camera.js";
+import { url as siteUrl } from "./paths.js";
 
 const SRGB = `
 // Images are stored top row first; uv here has y up.
@@ -114,7 +115,7 @@ void main() {
 const LOG_DMIN = Math.log(0.25), LOG_RANGE = Math.log(400 / 0.25);
 
 async function streamBundle(url, index, onFrame, signal) {
-  const res = await fetch(url, { signal });
+  const res = await fetch(siteUrl(url), { signal });
   if (!res.ok || !res.body) throw new Error(`bundle ${url}: ${res.status}`);
   const total = index.reduce((s, f) => Math.max(s, f.o + f.n), 0);
   const buf = new Uint8Array(total);
@@ -170,16 +171,17 @@ export class SequencePlayer {
   }
 
   async start() {
-    const idx = await fetch(`${this.base}.json`, { signal: this.abort.signal }).then((r) => r.json());
+    const idx = this.index || await fetch(siteUrl(`${this.base}.json`), { signal: this.abort.signal }).then((r) => r.json());
     this.index = idx;
     if (this.tier === "webgl") this.initGL();
     else this.ctx = this.canvas.getContext("2d");
     this.resize();
-    for (const r of this.rest) {
-      fetch(r.url, { signal: this.abort.signal }).then((res) => res.blob())
-        .then((b) => createImageBitmap(b)).then((bm) => { this.restBmp.set(r.index, bm); this.dirty = true; })
-        .catch(() => {});
-    }
+    // The sharp still of the frame the page opens on comes first, on its own:
+    // the bundles wait for it (at most 2.5 s), so it never shares the line.
+    const rests = this.rest.map((r) => fetch(siteUrl(r.url), { signal: this.abort.signal }).then((res) => res.blob())
+      .then((b) => createImageBitmap(b)).then((bm) => { this.restBmp.set(r.index, bm); this.dirty = true; })
+      .catch(() => {}));
+    if (rests.length) await Promise.race([Promise.all(rests), new Promise((r) => setTimeout(r, 2500))]);
     // Ladder first (a few hundred kB for the whole sequence), then depth, then full frames.
     const got = (arr) => (i, blob) => { arr[i] = blob; this.dirty = true; this.ensureWindow(); this.emit(); };
     await streamBundle(`${this.base}-ladder.bin`, idx.ladder, got(this.lo), this.abort.signal).catch(() => {});
@@ -291,7 +293,9 @@ export class SequencePlayer {
     if (rest && Math.abs(this.f - Math.round(this.f)) < 0.02) return this.drawStill(rest, time);
     const ka = this.source(i0), kb = this.source(i1);
     if (!ka && !kb) return;
-    this.firstDraw();
+    // The page's own picture stays up until something at least as sharp is drawn.
+    if ((ka || kb).startsWith("hi")) this.firstDraw();
+    else if (!this.drewOnce) return;
     const A = ka || kb, B = kb || ka;
     if (!ka) t = 1;
     if (!kb) t = 0;

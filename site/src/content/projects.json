@@ -17,8 +17,121 @@
       "The ghaf (Prosopis cineraria) was older than the neighbourhood. The house was planned around it: four wings, one courtyard, and the tree in the middle, its crown lifted clear of the roofs.",
       "The Shade Study showed that the tree and the west wing together keep the courtyard floor in shade from 06:40 to 17:40 on the longest day. Rooms open onto it on every side."
     ],
-    "facts": [["Location", "Jumeirah, Dubai"], ["Completed", "2021"], ["Area", "540 m²"], ["Shade", "11 h on 21 June"], ["Structure", "Limestone, lime render, teak"]],
-    "details": ["The tree's shade on the limewash", "The west loggia at 16:10"]
+    "facts": [
+      [
+        "Location",
+        "Jumeirah, Dubai"
+      ],
+      [
+        "Completed",
+        "2021"
+      ],
+      [
+        "Area",
+        "540 m²"
+      ],
+      [
+        "Shade",
+        "11 h on 21 June"
+      ],
+      [
+        "Structure",
+        "Limestone, lime render, teak"
+      ]
+    ],
+    "details": [
+      {
+        "title": "The tree's shade on the limewash",
+        "alt": "The east wing's limewash at 16:10, covered in the ghaf's dappled shade, with a teak door and a carved window screen."
+      },
+      {
+        "title": "The west loggia at 16:10",
+        "alt": "Looking along the west loggia: floor cushions and a brass tray table in deep shade, the sunlit courtyard beyond the piers."
+      }
+    ],
+    "heroAlt": "The Ghaf House courtyard at 16:10, seen from the shaded west loggia: an old ghaf tree on a limestone drum, its dappled shade on the limewashed east wing, two teak chairs and cushions beneath it.",
+    "caption": "left",
+    "study": {
+      "w": 28,
+      "h": 28,
+      "casters": [
+        {
+          "box": [
+            [
+              22.5,
+              3
+            ],
+            [
+              28,
+              3
+            ],
+            [
+              28,
+              23
+            ],
+            [
+              22.5,
+              23
+            ]
+          ],
+          "h": 7.5
+        },
+        {
+          "box": [
+            [
+              0,
+              2
+            ],
+            [
+              4.5,
+              2
+            ],
+            [
+              4.5,
+              25
+            ],
+            [
+              0,
+              25
+            ]
+          ],
+          "h": 7
+        },
+        {
+          "box": [
+            [
+              3,
+              25.5
+            ],
+            [
+              25,
+              25.5
+            ],
+            [
+              25,
+              28
+            ],
+            [
+              3,
+              28
+            ]
+          ],
+          "h": 11
+        },
+        {
+          "circle": [
+            14,
+            13,
+            5.6
+          ],
+          "h": 9.6
+        }
+      ],
+      "highlight": {
+        "below": 8
+      },
+      "note": "The plot before the house: the neighbours, a taller block to the north, and the ghaf. The house was drawn around what the tree already shaded."
+    }
   },
   {
     "slug": "hotel-sikka",
@@ -28,8 +141,8 @@
     "status": "Completed 2023",
     "type": "Hotel, 24 rooms",
     "size": "2,900 m²",
-    "hour": "09:40",
-    "minutes": 580,
+    "hour": "11:10",
+    "minutes": 670,
     "pattern": "slats",
     "patternName": "palm-rib slats",
     "line": "Twenty-four rooms along two sikkas, the narrow shaded lanes of old Deira, with a wind tower at their meeting point.",
@@ -38,8 +151,113 @@
       "Rooms are stacked either side of two lanes, 1.8 m wide and 9 m high. At street level the lanes are in shade until almost noon, and cooled by the wind tower where they meet.",
       "Over the lanes, a lattice of palm-rib slats cuts the high sun into lines that move across the walls through the day."
     ],
-    "facts": [["Location", "Deira, Dubai"], ["Completed", "2023"], ["Rooms", "24"], ["Area", "2,900 m²"], ["Structure", "Coral-stone render, palm-rib slats, teak"]],
-    "details": ["The sikka at 09:40", "The wind tower's shaft"]
+    "facts": [
+      [
+        "Location",
+        "Deira, Dubai"
+      ],
+      [
+        "Completed",
+        "2023"
+      ],
+      [
+        "Rooms",
+        "24"
+      ],
+      [
+        "Area",
+        "2,900 m²"
+      ],
+      [
+        "Structure",
+        "Coral-stone render, palm-rib slats, teak"
+      ]
+    ],
+    "details": [
+      {
+        "title": "The palm-rib roof at 11:10",
+        "alt": "Looking up at the palm-rib slats on their teak joists, the morning sun cutting them into lines on the top of the west wall."
+      },
+      {
+        "title": "The wind tower",
+        "alt": "The wind tower where the two lanes meet, its open shaft catching the breeze above the roofs."
+      }
+    ],
+    "heroAlt": "Hotel Sikka's lane at 11:10: the palm-rib roof draws a grid of light high on the west wall, a brass lantern and a teak door below, the lane still in shade, the wind tower at its end.",
+    "caption": "right",
+    "study": {
+      "w": 24,
+      "h": 30,
+      "casters": [
+        {
+          "box": [
+            [
+              0,
+              0
+            ],
+            [
+              5,
+              0
+            ],
+            [
+              5,
+              30
+            ],
+            [
+              0,
+              30
+            ]
+          ],
+          "h": 7.5
+        },
+        {
+          "box": [
+            [
+              19,
+              0
+            ],
+            [
+              24,
+              0
+            ],
+            [
+              24,
+              30
+            ],
+            [
+              19,
+              30
+            ]
+          ],
+          "h": 7.5
+        },
+        {
+          "box": [
+            [
+              10,
+              26
+            ],
+            [
+              14,
+              26
+            ],
+            [
+              14,
+              30
+            ],
+            [
+              10,
+              30
+            ]
+          ],
+          "h": 16
+        }
+      ],
+      "highlight": {
+        "below": 8
+      },
+      "note": "The site between two old blocks of Deira and the wind tower that was already there. The rooms fill the gap; the lanes are cut through it."
+    }
   },
   {
     "slug": "qudra-canopy",
@@ -59,8 +277,59 @@
       "A roof of deep triangular ribs, 40 m across, on seven bronze columns, with no walls, no doors and no floor but the sand.",
       "A second, finer lattice sits on the ribs. From below it reads as lace. On the sand it turns into a field of small triangles of light that drift across the ground as the day turns. People come for the shade, and stay for the pattern."
     ],
-    "facts": [["Location", "Al Qudra, Dubai"], ["Completed", "2019"], ["Span", "40 m"], ["Shade", "1,250 m²"], ["Structure", "GRC lattice on bronze columns"]],
-    "details": ["Under the roof at 13:40", "The infill lattice from below"]
+    "facts": [
+      [
+        "Location",
+        "Al Qudra, Dubai"
+      ],
+      [
+        "Completed",
+        "2019"
+      ],
+      [
+        "Span",
+        "40 m"
+      ],
+      [
+        "Shade",
+        "1,250 m²"
+      ],
+      [
+        "Structure",
+        "GRC lattice on bronze columns"
+      ]
+    ],
+    "details": [
+      {
+        "title": "Under the roof at 13:40",
+        "alt": "The sand under the canopy at 13:40, printed with small triangles of light, the dunes and a ghaf on the horizon."
+      },
+      {
+        "title": "The infill lattice from below",
+        "alt": "Looking up through the canopy: the fine triangular infill between deep structural ribs, against a pale midday sky."
+      }
+    ],
+    "heroAlt": "Under the Qudra Canopy at 13:40: a 40 m lattice roof on bronze columns, its shadow a field of small triangles of light on the sand, the desert open on every side.",
+    "caption": "left",
+    "study": {
+      "w": 60,
+      "h": 60,
+      "casters": [
+        {
+          "circle": [
+            30,
+            30,
+            20
+          ],
+          "h": 6.5,
+          "roof": true
+        }
+      ],
+      "highlight": {
+        "above": 6
+      },
+      "note": "An empty plot in the desert, with nothing on it to cast a shadow. The roof is the only shade, so here the drawing shows the roof's own shadow, hour by hour: its shadow is the building."
+    }
   },
   {
     "slug": "mushrif-reading-rooms",
@@ -70,17 +339,104 @@
     "status": "Completing 2026",
     "type": "Public library rooms",
     "size": "1,600 m²",
-    "hour": "16:30",
-    "minutes": 990,
+    "hour": "18:05",
+    "minutes": 1085,
     "pattern": "carved",
     "patternName": "carved stars",
     "line": "Reading rooms behind screens carved 45 cm deep, so only the low sun gets through.",
     "fact": "At noon the screens pass no direct sun at all.",
     "text": [
-      "The screens are 45 cm deep: carved stone, star upon star. At noon they pass no direct sun at all, only the glow off their own sides.",
-      "In the late afternoon the sun lines up with the carving, and for about forty minutes the reading tables are covered in stars."
+      "The screens are 45 cm deep: carved stone, star upon star, each hole cut along the line of the sun at five past six on the longest day. At noon they pass no direct sun at all, only the glow off their own sides.",
+      "Late in the afternoon the sun lines up with the carving. From about half past five the stars start to arrive, and for forty minutes around 18:05 the room is full of them: long ones across the tables, whole ones on the wall above the shelves."
     ],
-    "facts": [["Location", "Mushrif, Dubai"], ["Status", "Completing 2026"], ["Area", "1,600 m²"], ["Screens", "45 cm carved stone"], ["Direct sun at noon", "None"]],
-    "details": ["The reading room at 16:30", "A screen, edge on"]
+    "facts": [
+      [
+        "Location",
+        "Mushrif, Dubai"
+      ],
+      [
+        "Status",
+        "Completing 2026"
+      ],
+      [
+        "Area",
+        "1,600 m²"
+      ],
+      [
+        "Screens",
+        "45 cm carved stone"
+      ],
+      [
+        "Direct sun at noon",
+        "None"
+      ]
+    ],
+    "details": [
+      {
+        "title": "Stars above the shelves at 18:05",
+        "alt": "The east wall above the low bookshelves, covered in stars of sunlight that came through the carved screen."
+      },
+      {
+        "title": "A screen, edge on",
+        "alt": "The carved screen seen along its length from inside, showing its 45 cm depth and the sun in its angled holes."
+      }
+    ],
+    "heroAlt": "The Mushrif reading room at 18:05: the low sun through the carved west screen throws whole stars on the wall above the bookshelves and long ones across the reading tables and floor.",
+    "caption": "left",
+    "study": {
+      "w": 30,
+      "h": 30,
+      "casters": [
+        {
+          "box": [
+            [
+              6,
+              0
+            ],
+            [
+              29,
+              0
+            ],
+            [
+              29,
+              4.5
+            ],
+            [
+              6,
+              4.5
+            ]
+          ],
+          "h": 8
+        },
+        {
+          "circle": [
+            2.5,
+            19,
+            3.6
+          ],
+          "h": 7.5
+        },
+        {
+          "circle": [
+            3,
+            9,
+            3.2
+          ],
+          "h": 7
+        },
+        {
+          "circle": [
+            26,
+            25,
+            3
+          ],
+          "h": 6.5
+        }
+      ],
+      "highlight": {
+        "below": 3
+      },
+      "note": "The corner of the park: its ghafs to the west and the school to the south. The reading rooms fill the gap, with the carved screen on the west face, toward the low sun."
+    }
   }
 ]

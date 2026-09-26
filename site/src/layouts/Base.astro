@@ -7,12 +7,16 @@ interface Props {
   title: string;
   description?: string;
   page?: string;
-  preload?: { href: string; srcset?: string; sizes?: string }[];
+  preload?: { href: string; srcset?: string; sizes?: string; media?: string }[];
 }
 const { title, description = copy.home.description, page = "", preload = [] } = Astro.props;
+// Each page states the site root relative to itself, so the built site works
+// from any folder (scripts resolve fetches against it: src/lib/paths.js).
+const depth = Astro.url.pathname.split("/").filter(Boolean).length;
+const root = depth ? "../".repeat(depth) : "./";
 ---
 <!doctype html>
-<html lang="en" data-page={page}>
+<html lang="en" data-page={page} data-root={root}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -27,7 +31,7 @@ const { title, description = copy.home.description, page = "", preload = [] } = 
     <link rel="icon" href="/img/favicon.svg" type="image/svg+xml" />
     <link rel="preload" href="/fonts/archivo-var.woff2" as="font" type="font/woff2" crossorigin />
     {preload.map((p) => (
-      <link rel="preload" as="image" href={p.href} imagesrcset={p.srcset} imagesizes={p.sizes} fetchpriority="high" />
+      <link rel="preload" as="image" href={p.href} imagesrcset={p.srcset} imagesizes={p.sizes} media={p.media} fetchpriority="high" />
     ))}
     <script is:inline>
       document.documentElement.classList.add("js");

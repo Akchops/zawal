@@ -15,7 +15,9 @@ export function webglTier() {
   try {
     if (new URLSearchParams(location.search).has("nogl")) return (probed = "2d");
     const c = document.createElement("canvas");
-    const gl = c.getContext("webgl", { failIfMajorPerformanceCaveat: true, antialias: false });
+    // ?forcegl accepts a software context (headless QA only).
+    const strict = !new URLSearchParams(location.search).has("forcegl");
+    const gl = c.getContext("webgl", { failIfMajorPerformanceCaveat: strict, antialias: false });
     if (gl && gl.getParameter(gl.MAX_TEXTURE_SIZE) >= 4096) probed = "webgl";
     gl?.getExtension("WEBGL_lose_context")?.loseContext();
     if (probed === "none" && c.getContext("2d")) probed = "2d";

@@ -10,6 +10,7 @@
 import { FULLSCREEN_VS, coverUv, fullscreenTriangle, program, texture, webglTier } from "./gl.js";
 import { cameraFrom, camUniform } from "./camera.js";
 import { solarPosition, sunDir, whenIsTheSun, clock } from "./solar.js";
+import { url } from "./paths.js";
 
 const FS = `
 precision highp float;
@@ -186,13 +187,13 @@ export class SunStage {
 
   async start() {
     if (webglTier() !== "webgl") return false;
-    this.meta = await fetch(this.base).then((r) => r.json());
+    this.meta = await fetch(url(this.base)).then((r) => r.json());
     const gl = this.canvas.getContext("webgl", { antialias: false, alpha: false });
     if (!gl) return false;
     this.gl = gl;
     fullscreenTriangle(gl);
     this.prog = program(gl, FULLSCREEN_VS, FS);
-    const load = async (url, linear = true) => texture(gl, await createImageBitmap(await (await fetch(url)).blob(),
+    const load = async (u, linear = true) => texture(gl, await createImageBitmap(await (await fetch(url(u))).blob(),
       { colorSpaceConversion: "none", premultiplyAlpha: "none" }), { linear });
     const g = this.meta.gbuffer;
     // Depth is 16 bits split over two bytes: never filter between texels.
