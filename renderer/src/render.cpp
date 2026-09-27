@@ -28,6 +28,7 @@
 #include "noise.h"
 #include "scenes.h"
 #include "projects.h"
+#include "approach.h"
 #include "sky.h"
 #include "sun.h"
 
@@ -421,6 +422,7 @@ int main(int argc, char** argv) {
   else if (sceneName == "sikka") buildSikka(sc);
   else if (sceneName == "mushrif") buildMushrif(sc);
   else if (sceneName == "studio") buildStudio(sc);
+  else if (sceneName == "approach") buildApproach(sc);
   else { std::fprintf(stderr, "unknown scene %s\n", sceneName.c_str()); return 2; }
   // Lights: only the groups asked for (--lights 1,3); none by default.
   {
