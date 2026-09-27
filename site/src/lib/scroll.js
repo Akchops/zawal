@@ -91,7 +91,9 @@ export async function smoothWheel() {
   }
 }
 
-export function scrollToY(y) {
-  if (lenis) lenis.scrollTo(y, { duration: 1.2 });
-  else scrollTo({ top: y, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+/** Scroll to y: eased for links, immediate for keyboard focus (a jump the
+ *  reader asked for by pressing Tab should not play the film on its own). */
+export function scrollToY(y, immediate = false) {
+  if (lenis) lenis.scrollTo(y, immediate ? { immediate: true } : { duration: 1.2 });
+  else scrollTo({ top: y, behavior: immediate || matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
 }

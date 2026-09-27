@@ -142,7 +142,8 @@ const root = depth ? "../".repeat(depth) : "./";
   .footer-mark .ar { font-size: 0.55em; margin-left: 0.3em; color: var(--dust); }
   .footer address { grid-column: 7 / span 3; font-style: normal; line-height: 2; }
   .honesty { grid-column: 1 / span 6; margin: 0; font-size: 17px; }
-  .credit { grid-column: 7 / span 6; margin: 0; }
+  .credit { grid-column: 7 / span 6; margin: 0; text-transform: none; letter-spacing: 0.02em; }   /* the credit reads exactly as written */
+  .footer address a { display: inline-block; padding-block: 5px; line-height: 1.4; }   /* 24 px+ tap targets */
   @media (max-width: 767px) {
     .footer-grid { grid-template-columns: 1fr; }
     .footer-mark, .footer address, .honesty, .credit { grid-column: 1; }

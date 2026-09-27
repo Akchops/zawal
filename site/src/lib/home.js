@@ -14,7 +14,7 @@
 import { SequencePlayer } from "./player.js";
 import { Compositor, PATTERNS } from "./compositor.js";
 import { SunStage, sunFromPointer, sunOnJune21, describeSun } from "./sun.js";
-import { mountFilm, scene, everyFrame, smoothWheel, beatNow, wake } from "./scroll.js";
+import { mountFilm, scene, everyFrame, smoothWheel, beatNow, beatToY, scrollToY, wake } from "./scroll.js";
 import { solarPosition, clock } from "./solar.js";
 import { studyDriver, markCentre } from "./study.js";
 import { url } from "./paths.js";
@@ -146,7 +146,9 @@ async function start() {
   let user = null, userBeat = -1, sunNow = null, blendFrom = null, blendT = 1;
   const inC = (b) => b >= 9.9 && b < 12.1;
   // Input moves the sun now, not on the next scroll tick.
-  const placeSun = (s) => { user = s; userBeat = beatNow(); blendT = 1; applySun(s); wake(); };
+  // The readout is announced only once the reader moves the sun: the idle
+  // sun changes it on every scroll step, which a screen reader should not recite.
+  const placeSun = (s) => { user = s; userBeat = beatNow(); blendT = 1; sunWhen.setAttribute("aria-live", "polite"); applySun(s); wake(); };
   // Idle, the sun rewinds across the sky with the scroll: from the hand-over
   // (the day's last frame) back to just after sunrise.
   const xHand = (IA.frames[nA - 1].m - 332) / (1149 - 332);
@@ -159,7 +161,9 @@ async function start() {
     const d = s.minutes != null ? { never: false, when: `21 June, ${clock(s.minutes)}` } : describeSun(s.alt, s.az);
     const text = d.never ? "No day in Dubai has this sun." : `Your sun: ${d.when}`;
     if (sunWhen.textContent !== text) sunWhen.textContent = text;
-    hudSun("YOUR SUN", d.never ? "—" : d.when.split(", ").pop(), s.alt, s.az);
+    // The HUD is C's only while C is on screen (the relight can finish
+    // loading after a jump has already taken the film elsewhere).
+    if (inC(beatNow())) hudSun("YOUR SUN", d.never ? "—" : d.when.split(", ").pop(), s.alt, s.az);
     if (sunOK) sunStage.setSun(s.alt, s.az);
     else if (sunOK === false && s.minutes != null) {
       // Canvas 2D / no relight: the day's own frames, nearest to that minute.
@@ -361,13 +365,16 @@ async function start() {
 
   // Which layers are on: the stage shows at most two at a time.
   const show = (el, on) => { if (el.hidden === on) el.hidden = !on; };
+  // Text layers are never removed from the page (keyboard and screen readers
+  // reach them in order); only whether they are drawn follows the film.
+  const showLayer = (el, on) => { if (el.classList.contains("off") === on) el.classList.toggle("off", !on); };
   scene(0, beats, (p, b) => {
     show(cvB, b < 4);
     show(cvA, (b >= 4 && b < 10.2) || (inC(b) && sunOK === false));
     show(cvSun, b >= 9.5 && b < 12.4 && sunOK !== false);
-    show(studyL, b >= 11.6 && b < 14.35);
+    showLayer(studyL, b >= 11.6 && b < 14.35);
     show(cvComp, b >= 13.4);
-    show(studioL, b >= 23.35 && b < 25.35);
+    showLayer(studioL, b >= 23.35 && b < 25.35);
     if (b > 8.5) preloadComp();
     hudOff(b > 22 && b < 25.3);
   });
@@ -392,6 +399,20 @@ async function start() {
       });
     });
   }
+
+  // ---------------- keyboard ----------------
+  // Every caption stays in the page (only its opacity follows the film), so
+  // Tab reaches every link in reading order. Focus landing in a part of the
+  // film that is not on screen jumps the film to the middle of that part, so
+  // the focused link is always the one being shown.
+  stage.addEventListener("focusin", (e) => {
+    const part = e.target.closest("[data-shot], [data-layer]");
+    if (!part) return;
+    const from = +part.dataset.from, to = +part.dataset.to, span = to - from;
+    const b = beatNow();
+    if (b >= from + span * 0.35 && b <= to - span * 0.25) return;
+    scrollToY(beatToY(from + span * 0.5), true);
+  });
 
   // ---------------- drawing ----------------
   // Frame-drop guard: while the film is drawing, watch the interval between
@@ -452,6 +473,7 @@ async function startReduced() {
   const portrait = innerHeight > innerWidth * 1.05;
   const stage = new SunStage({ canvas, base: `/sun/sun-${portrait ? "p" : "l"}.json` });
   const when = film.querySelector("[data-sun-when]");
+  when.setAttribute("aria-live", "polite");   // here the sun moves only when the reader moves it
   const ok = await stage.start().catch(() => false);
   if (!ok) { host.remove(); return; }
   const apply = (s) => {

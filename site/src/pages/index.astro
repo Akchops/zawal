@@ -111,14 +111,14 @@ const P = (n: string) => `/img/posters/${n}`;
         <div class="sun-inline" data-sun-inline></div>
         <div class="cap cap-sun">
           <p class="mono sun-hint" data-reveal><span data-sun-hint-pointer>{c.sunHint.pointer}</span><span data-sun-hint-touch hidden>{c.sunHint.touch}</span></p>
-          <p class="sun-when" data-reveal data-sun-when aria-live="polite">Your sun: 21 June, 18:50</p>
+          <p class="sun-when" data-reveal data-sun-when aria-live="off">Your sun: 21 June, 18:50</p>
           <button class="mono sun-tilt" type="button" data-sun-tilt hidden>Tilt the phone to move the sun</button>
           <p class="nojs-note">The live sun needs JavaScript: move the pointer and the courtyard is relit for any sun, with its date and time in Dubai.</p>
         </div>
       </div>
 
       <!-- The Shade Study: a sheet of limewash sand -->
-      <div class="layer study on-sand" data-layer="study" data-from="11.7" data-to="14.3" hidden>
+      <div class="layer study on-sand off" data-layer="study" data-from="11.7" data-to="14.3">
         <div class="study-text">
           <p class="mono dust">21·06 · 06:00 → 19:00 · Jumeirah</p>
           <h2 class="head">{c.studyTitle}</h2>
@@ -140,7 +140,7 @@ const P = (n: string) => `/img/posters/${n}`;
             <h3 class="statement work-name" data-reveal>{p.name}</h3>
             <p class="work-line" data-reveal>{p.line}</p>
             <p class="mono work-fact" data-reveal>{p.fact}</p>
-            <p class="work-link" data-reveal><a class="link mono" href={`/work/${p.slug}/`} data-vt={p.pattern === "carved" ? "stars" : p.pattern}>The project <span aria-hidden="true">→</span></a></p>
+            <p class="work-link" data-reveal><a class="link mono" href={`/work/${p.slug}/`} data-vt={p.pattern === "carved" ? "stars" : p.pattern}>The project<span class="visually-hidden">: {p.name}</span> <span aria-hidden="true">→</span></a></p>
           </div>
         </div>
       ))}
@@ -160,7 +160,7 @@ const P = (n: string) => `/img/posters/${n}`;
       </div>
 
       <!-- Studio: text portraits, on sand -->
-      <div class="layer studio on-sand" data-layer="studio" data-from="23.4" data-to="25.4" hidden>
+      <div class="layer studio on-sand off" data-layer="studio" data-from="23.4" data-to="25.4">
         <div class="studio-inner">
           <p class="mono dust">{studio.people} people · Al Quoz · since {studio.founded}</p>
           <h2 class="statement studio-title">{c.studioTitle}</h2>
@@ -213,11 +213,14 @@ const P = (n: string) => `/img/posters/${n}`;
   :global(html.js:not(.rm)) .seq[hidden] { display: none; }
   :global(html.js:not(.rm)) .still { display: none; }
   :global(html.js:not(.rm)) .shot { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
-  :global(html.js:not(.rm)) .shot .cap { visibility: hidden; }
-  :global(html.js:not(.rm)) .shot.on .cap { visibility: visible; }
-  :global(html.js:not(.rm)) .shot a, :global(html.js:not(.rm)) .shot button { pointer-events: auto; }
+  /* Inactive captions are transparent, not hidden: they stay in the
+     accessibility tree and in the Tab order (home.js jumps the film to a
+     focused caption), but cannot be clicked. */
+  :global(html.js:not(.rm)) .shot .cap { opacity: 0; }
+  :global(html.js:not(.rm)) .shot.on .cap { opacity: 1; }
+  :global(html.js:not(.rm)) .shot.on a, :global(html.js:not(.rm)) .shot.on button { pointer-events: auto; }
   :global(html.js:not(.rm)) .layer { position: absolute; inset: 0; z-index: 2; }
-  :global(html.js:not(.rm)) .layer[hidden] { display: none; }
+  :global(html.js:not(.rm)) .layer.off { opacity: 0; pointer-events: none; }
   :global(html.js:not(.rm)) .nojs-note { display: none; }
   .grade { position: absolute; inset: 0; pointer-events: none;
     background: linear-gradient(180deg, rgba(15, 20, 24, 0.38) 0%, rgba(15, 20, 24, 0) 26%, rgba(15, 20, 24, 0) 58%, rgba(15, 20, 24, 0.55) 100%); }
@@ -323,7 +326,9 @@ const P = (n: string) => `/img/posters/${n}`;
   .cap-night { bottom: calc(76px + env(safe-area-inset-bottom)); max-width: 30em; }
   .cap-night .statement { margin: 10px 0 24px; font-size: clamp(30px, 4.6vw, 76px); }
   .night-contact { display: grid; gap: 6px; font-style: normal; }
-  .night-contact a { pointer-events: auto; }
+  /* the reveal makes every revealed line inline-block; this one keeps its rows */
+  :global(html.js:not(.rm)) .night-contact[data-reveal] { display: inline-grid; }
+  .night-contact a { pointer-events: auto; padding-block: 4px; justify-self: start; }
 
   .hud {
     position: absolute; z-index: 5; right: var(--margin); bottom: max(12px, env(safe-area-inset-bottom));
@@ -354,9 +359,6 @@ const P = (n: string) => `/img/posters/${n}`;
   :global(html:not(.js)) .hint, :global(html.rm) .hint { display: none; }
   :global(html:not(.js)) .shot-cold, :global(html.rm) .shot-cold { padding-top: 64px; }
   :global(html:not(.js)) .layer, :global(html.rm) .layer { position: relative; margin: 0 0 12vh; }
-  /* !important: some hosts ship [hidden] { display: none !important } */
-  :global(html:not(.js)) .study[hidden], :global(html.rm) .study[hidden] { display: grid !important; }
-  :global(html:not(.js)) .studio[hidden], :global(html.rm) .studio[hidden] { display: grid !important; }
   :global(html:not(.js)) .sun-tilt, :global(html.rm) .sun-tilt { display: none; }
   :global(html.rm) .nojs-note { display: none; }
   :global(html.rm) .sun-inline { position: relative; aspect-ratio: 16 / 9; margin: 0 0 8px; }
