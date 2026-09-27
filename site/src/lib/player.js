@@ -232,9 +232,12 @@ export class SequencePlayer {
     if (rests.length) await Promise.race([Promise.all(rests), new Promise((r) => setTimeout(r, 2500))]);
     // Ladder first (a few hundred kB for the whole sequence), then depth, then full frames.
     const got = (arr) => (i, blob) => { arr[i] = blob; this.dirty = true; this.ensureWindow(); this.emit(); };
-    await streamBundle(`${this.base}-ladder.bin`, idx.ladder, got(this.lo), this.abort.signal).catch(() => {});
-    if (this.mode === "camera" && idx.depth) await streamBundle(`${this.base}-depth.bin`, idx.depth, got(this.dep), this.abort.signal).catch(() => {});
-    await streamBundle(`${this.base}-hi.bin`, idx.hi, got(this.hi), this.abort.signal).catch(() => {});
+    // Bundle files are plain byte streams; their extension comes from the index
+    // (".bin" on a normal host; a host that serves only known types gets another).
+    const ext = idx.ext || ".bin";
+    await streamBundle(`${this.base}-ladder${ext}`, idx.ladder, got(this.lo), this.abort.signal).catch(() => {});
+    if (this.mode === "camera" && idx.depth) await streamBundle(`${this.base}-depth${ext}`, idx.depth, got(this.dep), this.abort.signal).catch(() => {});
+    await streamBundle(`${this.base}-hi${ext}`, idx.hi, got(this.hi), this.abort.signal).catch(() => {});
   }
 
   on(fn) { this.listeners.push(fn); }

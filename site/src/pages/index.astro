@@ -354,8 +354,9 @@ const P = (n: string) => `/img/posters/${n}`;
   :global(html:not(.js)) .hint, :global(html.rm) .hint { display: none; }
   :global(html:not(.js)) .shot-cold, :global(html.rm) .shot-cold { padding-top: 64px; }
   :global(html:not(.js)) .layer, :global(html.rm) .layer { position: relative; margin: 0 0 12vh; }
-  :global(html:not(.js)) .study[hidden], :global(html.rm) .study[hidden] { display: grid; }
-  :global(html:not(.js)) .studio[hidden], :global(html.rm) .studio[hidden] { display: grid; }
+  /* !important: some hosts ship [hidden] { display: none !important } */
+  :global(html:not(.js)) .study[hidden], :global(html.rm) .study[hidden] { display: grid !important; }
+  :global(html:not(.js)) .studio[hidden], :global(html.rm) .studio[hidden] { display: grid !important; }
   :global(html:not(.js)) .sun-tilt, :global(html.rm) .sun-tilt { display: none; }
   :global(html.rm) .nojs-note { display: none; }
   :global(html.rm) .sun-inline { position: relative; aspect-ratio: 16 / 9; margin: 0 0 8px; }

@@ -2,7 +2,7 @@
 // relative (it is served from an unknown folder, not a domain root) and page
 // links name their index.html (the host does not map folders to it).
 //   node scripts/make-preview.mjs [outDir=preview]
-import { cpSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { cpSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -13,13 +13,49 @@ rmSync(out, { recursive: true, force: true });
 cpSync(dist, out, { recursive: true });
 
 const walk = (d) => readdirSync(d).flatMap((f) => { const p = join(d, f); return statSync(p).isDirectory() ? walk(p) : [p]; });
+// Names starting with "_" are reserved by some hosts: rename those files
+// (Astro names a [slug] page's script "_slug_...") and every reference to them.
+const renames = new Map();
+for (const f of walk(out)) {
+  const base = f.split(sep).pop();
+  if (base.startsWith("_")) {
+    const to = join(dirname(f), "u" + base);
+    renameSync(f, to);
+    renames.set(base, "u" + base);
+  }
+}
+// Frame bundles: the preview host serves only known file types, and ".bin" is
+// not one. The bytes are fetched and parsed by the player, never executed, so
+// they travel under ".wasm" (served, never transcoded); each sequence index
+// records the extension its player must request.
+for (const f of walk(out)) {
+  if (f.endsWith(".bin")) renameSync(f, f.replace(/\.bin$/, ".wasm"));
+  if (f.includes(`${sep}seq${sep}`) && f.endsWith(".json")) {
+    const j = JSON.parse(readFileSync(f, "utf8"));
+    j.ext = ".wasm";
+    writeFileSync(f, JSON.stringify(j));
+  }
+}
 const files = walk(out);
+if (renames.size)
+  for (const f of files.filter((x) => /\.(html|js|css)$/.test(x))) {
+    let s = readFileSync(f, "utf8"), t = s;
+    for (const [a, b] of renames) t = t.split(a).join(b);
+    if (t !== s) writeFileSync(f, t);
+  }
 const pages = new Set(files.filter((f) => f.endsWith(".html")).map((f) => "/" + relative(out, f).split(sep).join("/")));
 
 function rel(fromFile, url) {
   // url: site-absolute ("/work/x/#y"); returns a path relative to fromFile's folder
   const m = url.match(/^([^?#]*)([?#].*)?$/);
   let path = m[1], tail = m[2] || "";
+  // The home page is the preview's own page, served at its root: link to the
+  // root folder itself. Other folders name their index.html.
+  if (path === "/") {
+    const fromDir0 = dirname("/" + relative(out, fromFile).split(sep).join("/"));
+    const up = relative(fromDir0, "/").split(sep).join("/");
+    return (up ? up + "/" : "./") + tail;
+  }
   if (path.endsWith("/")) path += "index.html";
   if (!path.includes(".") && pages.has(path + "/index.html")) path += "/index.html";
   const fromDir = dirname("/" + relative(out, fromFile).split(sep).join("/"));

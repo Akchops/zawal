@@ -5,7 +5,7 @@ import { defineConfig } from "astro/config";
 export default defineConfig({
   output: "static",
   trailingSlash: "always",
-  build: { format: "directory", inlineStylesheets: "always", assets: "_z" },
+  build: { format: "directory", inlineStylesheets: "always", assets: "z" },
   compressHTML: true,
   vite: {
     build: { assetsInlineLimit: 0, cssCodeSplit: true },
