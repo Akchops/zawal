@@ -87,6 +87,18 @@ float sunVis(vec3 p, vec3 n, vec3 L) {
   v *= hitBox(o, L, vec3(-4.5, 0.0, -4.5), vec3(11.7, 7.0, 0.0));
   v *= hitBox(o, L, vec3(6.0, 7.0, -3.95), vec3(9.0, 12.9, -0.95));
   v *= hitBox(o, L, vec3(-0.5, 3.5, 13.65), vec3(7.7, 7.0, 17.1));
+  // The loggia (renderer scenes.h: CL 13.2, T 0.45, arcade openings 1.7 m
+  // between 0.525 m piers, 2.9 m high): the rammed-earth wall above the
+  // arcade, its four piers, the loggia's side walls and back wall. Without
+  // them a low sun lights the inside of the loggia, which it never reaches.
+  v *= hitBox(o, L, vec3(-0.45, 2.9, 13.2), vec3(7.65, 7.4, 13.65));
+  v *= hitBox(o, L, vec3(-0.45, 0.0, 13.2), vec3(0.525, 2.9, 13.65));
+  v *= hitBox(o, L, vec3(2.225, 0.0, 13.2), vec3(2.75, 2.9, 13.65));
+  v *= hitBox(o, L, vec3(4.45, 0.0, 13.2), vec3(4.975, 2.9, 13.65));
+  v *= hitBox(o, L, vec3(6.675, 0.0, 13.2), vec3(7.65, 2.9, 13.65));
+  v *= hitBox(o, L, vec3(-0.45, 0.0, 13.65), vec3(0.0, 3.5, 16.65));
+  v *= hitBox(o, L, vec3(7.2, 0.0, 13.65), vec3(7.65, 3.5, 16.65));
+  v *= hitBox(o, L, vec3(-0.45, 0.0, 16.65), vec3(7.65, 3.5, 17.1));
   // Teak beams under the lattice (4 across, 2 along).
   for (int k = 0; k < 4; k++) {
     float z = 3.07 + float(k) * 2.2867;
@@ -261,7 +273,11 @@ export class SunStage {
   }
 
   draw() {
-    if (!this.ready || !this.dirty) return;
+    if (!this.ready) return;
+    // A canvas that was hidden when the stage started has no size yet: re-measure.
+    const want = Math.round(this.canvas.clientWidth * Math.min(devicePixelRatio || 1, this.maxDpr || 1.5));
+    if (want && Math.abs(want - this.canvas.width) > 1) { this.resize(); this.dirty = true; }
+    if (!this.dirty) return;
     this.dirty = false;
     this.resize();
     const gl = this.gl, { p, uni } = this.prog;

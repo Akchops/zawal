@@ -150,7 +150,8 @@ async function start() {
   // Idle, the sun rewinds across the sky with the scroll: from the hand-over
   // (the day's last frame) back to just after sunrise.
   const xHand = (IA.frames[nA - 1].m - 332) / (1149 - 332);
-  const idleSun = (b) => { const r = ramp(b, 9.9, 11.9); return sunOnJune21(xHand * (1 - r) + 0.02 * r); };
+  // Held at the hand-over sun until the relight has fully faded in (10.0).
+  const idleSun = (b) => { const r = ramp(b, 10.0, 11.9); return sunOnJune21(xHand * (1 - r) + 0.02 * r); };
   const applySun = (s) => {
     sunNow = s;
     // A sun on the 21 June path is named by its own clock; any other sun by

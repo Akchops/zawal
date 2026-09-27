@@ -276,7 +276,12 @@ export class Compositor {
   }
 
   draw() {
-    if (!this.dirty || !this.state) return;
+    if (!this.state) return;
+    // A canvas that was hidden when it was first used has no size yet: re-measure.
+    const cap = this.tier === "webgl" ? (this.maxDpr || 1.5) : 1;
+    const want = Math.round(this.canvas.clientWidth * Math.min(devicePixelRatio || 1, cap));
+    if (want && Math.abs(want - this.canvas.width) > 1) this.dirty = true;
+    if (!this.dirty) return;
     this.init();
     this.resize();
     const s = this.state;
