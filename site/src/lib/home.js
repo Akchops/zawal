@@ -12,7 +12,7 @@
 //   23.4-25 the studio, uncovered by a shade line; the page darkens with sunset
 //   25-26.5 night: the lanterns switch on one by one; contact
 import { SequencePlayer } from "./player.js";
-import { Compositor } from "./compositor.js";
+import { Compositor, PATTERNS } from "./compositor.js";
 import { SunStage, sunFromPointer, sunOnJune21, describeSun } from "./sun.js";
 import { mountFilm, scene, everyFrame, smoothWheel, beatNow, wake } from "./scroll.js";
 import { solarPosition, clock } from "./solar.js";
@@ -241,6 +241,7 @@ async function start() {
   const comp = new Compositor(cvComp);
   comp.wake = wake;
   const slugs = [...stage.querySelectorAll("[data-project]")].map((el) => el.dataset.project);
+  const pats = [...stage.querySelectorAll("[data-project]")].map((el) => PATTERNS[el.dataset.pattern] ?? 3);
   const projectsMeta = slugs.map((slug) => {
     const el = stage.querySelector(`[data-project="${slug}"]`);
     return { slug, from: +el.dataset.from, minutes: 0, el };
@@ -328,8 +329,8 @@ async function start() {
     if (b < 22) {
       const i = Math.max(0, Math.min(3, Math.floor((b - 14) / 2)));
       const u = b - (14 + 2 * i);
-      if (i < 3 && u > 1.3) comp.set({ mode: "morph", a: hero(i), b: hero(i + 1), ma: mask(i), mb: mask(i + 1), t: clamp01((u - 1.3) / 0.7) });
-      else comp.set({ mode: "morph", a: hero(i), b: hero(i), ma: mask(i), mb: mask(i), t: 0 });
+      if (i < 3 && u > 1.3) comp.set({ mode: "morph", a: hero(i), b: hero(i + 1), ma: mask(i), mb: mask(i + 1), pa: pats[i], pb: pats[i + 1], t: clamp01((u - 1.3) / 0.7) });
+      else comp.set({ mode: "morph", a: hero(i), b: hero(i), ma: mask(i), mb: mask(i), pa: pats[i], pb: pats[i], t: 0 });
       const ph = projectHud[i];
       const s = solarPosition(2026, 6, 21, ph.m, ph.site);
       hudSun(ph.date, clock(ph.m), s.alt, s.az);

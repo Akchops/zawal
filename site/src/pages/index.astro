@@ -130,7 +130,7 @@ const P = (n: string) => `/img/posters/${n}`;
       <!-- D · Four projects, each at its hour -->
       <h2 class="visually-hidden">{c.workTitle}</h2>
       {work.map((p) => (
-        <div class={`shot shot-work cap-${p.caption}`} data-shot data-from={p.from} data-to={p.to - 0.62} data-sun={p.az} data-project={p.slug}>
+        <div class={`shot shot-work cap-${p.caption}`} data-shot data-from={p.from} data-to={p.to - 0.62} data-sun={p.az} data-project={p.slug} data-pattern={p.pattern}>
           <picture class="still">
             <source media="(orientation: portrait)" srcset={`/img/projects/${p.slug}-p720.webp 720w, /img/projects/${p.slug}-p1080.webp 1080w`} sizes="100vw" />
             <img src={`/img/projects/${p.slug}-l1280.webp`} srcset={`/img/projects/${p.slug}-l1280.webp 1280w, /img/projects/${p.slug}-l1920.webp 1920w`} sizes="100vw" alt={p.heroAlt} loading="lazy" width="1920" height="1080" />
