@@ -27,13 +27,16 @@ function init() {
   const portrait = stageEl.clientHeight > stageEl.clientWidth;
   const stage = new SunStage({ canvas, base: `/sun/sun-${portrait ? "p" : "l"}.json` });
   let live = false;
+  // No live stage (no WebGL, or it failed): the still stays, so swap its light
+  // first-paint version for the sharp one.
+  const sharpen = () => { for (const el of still.querySelectorAll("[data-srcset]")) el.srcset = el.dataset.srcset; };
   stage.start().then((ok) => {
-    if (!ok) return;
+    if (!ok) return sharpen();
     live = true;
     canvas.hidden = false;
     still.style.visibility = "hidden";
     update();
-  }).catch(() => {});
+  }).catch(sharpen);
 
   let plotKey = "";
   const drawPlot = (m, d, minutes) => {

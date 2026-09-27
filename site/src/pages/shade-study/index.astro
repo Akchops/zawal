@@ -13,7 +13,7 @@ const months = ["January", "February", "March", "April", "May", "June", "July", 
 const mail = `mailto:${studio.contact.email}?subject=${encodeURIComponent("Shade Study")}`;
 ---
 <Base title={`${c.title} · ZAWAL`} description={`${c.lede} ZAWAL is a fictional studio: this site is a design demonstration.`} page="shade-study"
-  preload={[{ href: "/img/posters/a048-p.webp", media: "(orientation: portrait)" }, { href: "/img/posters/a048-l.webp", media: "(orientation: landscape)" }]}>
+  preload={[{ href: "/img/posters/a048-p-lite.webp", media: "(orientation: portrait)" }, { href: "/img/posters/a048-l-lite.webp", media: "(orientation: landscape)" }]}>
   <header class="ss-head">
     <p class="mono dust">{studio.method.name} · for {c.who.replace(/^For /, "").replace(/\.$/, "").toLowerCase()}</p>
     <h1 class="statement">{c.title}</h1>
@@ -23,9 +23,12 @@ const mail = `mailto:${studio.contact.email}?subject=${encodeURIComponent("Shade
   <section class="instrument" aria-labelledby="inst-h" data-instrument>
     <h2 class="visually-hidden" id="inst-h">The instrument</h2>
     <div class="inst-stage" data-inst-stage>
+      <!-- First paint: a light still (within the first-load budget). The live
+           stage covers it once running; if it cannot run, the sharp still is
+           swapped in (instrument.js). -->
       <picture class="inst-still">
-        <source media="(orientation: portrait)" srcset="/img/posters/a048-p.webp" />
-        <img src="/img/posters/a048-l.webp" alt="The courtyard at zawal, 12:20 on 21 June: the canopy's stars fall straight down onto the floor." width="1600" height="900" />
+        <source media="(orientation: portrait)" srcset="/img/posters/a048-p-lite.webp" data-srcset="/img/posters/a048-p.webp" />
+        <img src="/img/posters/a048-l-lite.webp" data-srcset="/img/posters/a048-l.webp" alt="The courtyard at zawal, 12:20 on 21 June: the canopy's stars fall straight down onto the floor." width="1600" height="900" fetchpriority="high" />
       </picture>
       <canvas data-inst-canvas hidden aria-label="The courtyard, relit live for the date and time you choose" role="img"></canvas>
       <p class="inst-read mono" aria-live="polite" data-inst-read>21 June · 12:20 · alt 88.2° · az 180.1°</p>
@@ -67,7 +70,9 @@ const mail = `mailto:${studio.contact.email}?subject=${encodeURIComponent("Shade
   </section>
 
   <script>
-    import "../../lib/instrument.js";
+    // The instrument after the load event: the page reads and paints first.
+    const go = () => import("../../lib/instrument.js");
+    if (document.readyState === "complete") go(); else addEventListener("load", go, { once: true });
   </script>
 </Base>
 
@@ -98,7 +103,7 @@ const mail = `mailto:${studio.contact.email}?subject=${encodeURIComponent("Shade
   .study-plot :global(.plot) { fill: #efe6d6; stroke: rgba(15, 20, 24, 0.5); stroke-width: 1; }
   .study-plot :global(.shadow) { fill: rgba(15, 20, 24, 0.035); stroke: #0f1418; stroke-width: 1; vector-effect: non-scaling-stroke; }
   .study-plot :global(.hour.now .shadow) { stroke: var(--copper-deep); stroke-width: 2.2; fill: rgba(54, 96, 79, 0.12); }
-  .study-plot :global(.hour-label) { font-family: var(--f-mono); font-size: 13px; fill: #6e675d; }
+  .study-plot :global(.hour-label) { font-family: var(--f-mono); font-size: 13px; fill: var(--dust-sand); }
   .study-plot :global(.caster) { fill: rgba(15, 20, 24, 0.82); }
   .study-plot :global(.tree) { fill: none; stroke: #0f1418; stroke-width: 1.2; stroke-dasharray: 3 4; }
   .study-plot :global(.mark) { fill: var(--copper-deep); opacity: 0.85; }

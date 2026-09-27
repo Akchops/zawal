@@ -31,6 +31,7 @@
   --noon: #f7f3ea;         /* Noon White: text on shade */
   --sand: #e6dac6;         /* Limewash Sand: light sections */
   --dust: #8c857a;         /* secondary text, hairlines */
+  --dust-sand: #625b51;    /* secondary text on sand: 4.8:1 */
   --copper: #5e9483;       /* the one accent */
   --copper-deep: #36604f;  /* copper on sand */
   --hair: rgba(140, 133, 122, 0.35);
@@ -151,7 +152,7 @@ button { font: inherit; color: inherit; }
 .on-sand .cta { color: var(--shade); border-color: var(--copper-deep); }
 .on-sand .cta:hover { background: var(--copper-deep); color: var(--sand); }
 .on-sand :focus-visible { outline-color: var(--copper-deep); }
-.on-sand .dust { color: #6e675d; }
+.on-sand .dust { color: var(--dust-sand); }
 
 /* The eclipse: page transitions through a lattice-shadow mask. */
 @view-transition { navigation: auto; }

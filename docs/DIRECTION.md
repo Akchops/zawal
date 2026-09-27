@@ -91,7 +91,7 @@ Grid: 12 columns, 24 px gutters desktop / 4 columns, 16 px gutters mobile. **No 
 
 1. **The sun is the only animator.** Anything that moves is either light moving (time) or the viewer moving (camera). Nothing floats, bounces or fades for decoration.
 2. **Scroll = time, linearly.** Scrubbed motion uses `ease: none`. Within a scene, a pixel of scroll is always the same slice of the day. Easing is reserved for UI (hover, menu, focus): 180–240 ms, `cubic-bezier(0.2, 0, 0, 1)`.
-3. **Reveal like shade, never fade.** Text and UI appear behind a hard-edged mask that sweeps at the *current sun azimuth* of the scene. Headlines split by line (GSAP SplitText) and each line is uncovered by that shadow edge. Numbers roll to their value like an instrument settling.
+3. **Reveal like shade, never fade.** Text and UI appear behind a hard-edged mask that sweeps at the *current sun azimuth* of the scene. Each caption line is uncovered by that shadow edge (a `clip-path` polygon whose slant follows the sun's altitude). Numbers roll to their value like an instrument settling.
 4. **Every scene change happens through a shadow.** Camera travel, a shared frame, or a lattice-pattern morph. No section ever fades in as a separate rectangle.
 5. **One ambient motion only: heat.** A real-time shimmer over sunlit ground, strongest near the horizon, and slow dust in light shafts. Both stop entirely under reduced motion.
 6. **Pins declare their beats.** 700 px/beat desktop, 420 px/beat mobile (≤767), recomputed on resize; no pin longer than 1200 px/beat.
@@ -111,7 +111,7 @@ Grid: 12 columns, 24 px gutters desktop / 4 columns, 16 px gutters mobile. **No 
 | page transition | the eclipse (lattice-shadow mask), ~700 ms | View Transitions | same | instant |
 | signature moments | A, B, C, D (§7) | — | touch versions in §7 | stills + captions |
 
-Technology (lowest rung that delivers it): pre-rendered frame sequences on `<canvas>` via CSS `position: sticky` (native pinning, no pin-spacer thrash); **raw WebGL** (~3 kB) for every real-time effect, because each is a full-screen shader over pre-rendered buffers. **No three.js**: there is no real-time 3D camera or scene graph to justify 120 kB. If a later phase needs one it is lazy-loaded. **GSAP + ScrollTrigger + SplitText + DrawSVG + MorphSVG**, lazy-loaded after first paint, for text choreography, the Shade Study plot and the sun-path morph. **Lenis** on desktop wheel only (scrubbed frames judder on discrete wheel steps); never on touch, never under reduced motion. The site must still work with Lenis removed.
+Technology (lowest rung that delivers it): pre-rendered frame sequences on `<canvas>` via CSS `position: sticky` (native pinning, no pin-spacer thrash); **raw WebGL** (~3 kB) for every real-time effect, because each is a full-screen shader over pre-rendered buffers. **No three.js**: there is no real-time 3D camera or scene graph to justify 120 kB. If a later phase needs one it is lazy-loaded. Text choreography, the Shade Study drawing and the sun-path glyph turned out not to need GSAP: the shade-edge reveals are CSS `clip-path` polygons driven by the scroll clock, the drawing is SVG `pathLength` dashes, and the morphs are the same raw-WebGL compositor, so GSAP is not a dependency and nothing of it ships. **Lenis** on desktop wheel only (scrubbed frames judder on discrete wheel steps); never on touch, never under reduced motion. The site must still work with Lenis removed.
 
 ---
 

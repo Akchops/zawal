@@ -270,7 +270,7 @@ const P = (n: string) => `/img/posters/${n}`;
   .study-plot :global(.plot-fill), .study-plot :global(.hole-cover) { fill: #efe6d6; }
   .study-plot :global(.shadow) { fill: rgba(15, 20, 24, 0.035); stroke: #0f1418; stroke-width: 1; vector-effect: non-scaling-stroke; }
   .study-plot :global(.hour.now .shadow) { stroke: var(--copper-deep); stroke-width: 1.6; }
-  .study-plot :global(.hour-label) { font-family: var(--f-mono); font-size: 13px; fill: #6e675d; letter-spacing: 0.06em; }
+  .study-plot :global(.hour-label) { font-family: var(--f-mono); font-size: 13px; fill: var(--dust-sand); letter-spacing: 0.06em; }
   .study-plot :global(.caster) { fill: rgba(15, 20, 24, 0.82); }
   .study-plot :global(.tree) { fill: none; stroke: #0f1418; stroke-width: 1.2; stroke-dasharray: 3 4; }
   .study-plot :global(.mark) { fill: var(--copper-deep); opacity: 0.9; }
@@ -336,7 +336,7 @@ const P = (n: string) => `/img/posters/${n}`;
   .hud-arc { fill: none; stroke: currentColor; stroke-width: 1; opacity: 0.55; }
   .hud-dot { fill: var(--copper); }
   @media (max-width: 767px) {
-    .hud { left: var(--margin); right: var(--margin); bottom: calc(28px + env(safe-area-inset-bottom)); justify-content: space-between; gap: 8px; }
+    .hud { left: var(--margin); right: var(--margin); bottom: calc(34px + env(safe-area-inset-bottom)); justify-content: space-between; gap: 8px; }
     .hud [data-hud-shadow] { display: none; }
   }
 

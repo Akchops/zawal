@@ -129,10 +129,12 @@ const root = depth ? "../".repeat(depth) : "./";
   @keyframes menu-sweep { to { clip-path: inset(0 0 0 0); } }
   .rm .menu.open li { animation: none; clip-path: none; }
 
+  /* A solid tag, not a blended overlay: it covers whatever scrolls beneath it,
+     so the mark never prints over body text. */
   .fiction-mark {
-    position: fixed; left: max(12px, env(safe-area-inset-left)); bottom: max(10px, env(safe-area-inset-bottom));
-    z-index: 50; margin: 0; font-size: 10.5px; letter-spacing: 0.08em;
-    color: rgba(247, 243, 234, 0.72); mix-blend-mode: difference; pointer-events: none;
+    position: fixed; left: max(8px, env(safe-area-inset-left)); bottom: max(6px, env(safe-area-inset-bottom));
+    z-index: 50; margin: 0; padding: 4px 7px 3px; font-size: 10px; line-height: 12px; letter-spacing: 0.08em;
+    color: rgba(247, 243, 234, 0.8); background: rgba(15, 20, 24, 0.88); pointer-events: none;
   }
   .footer { position: relative; z-index: 5; background: var(--shade); border-top: 1px solid var(--hair); padding: 64px var(--margin) 72px; }
   .footer-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 24px var(--gutter); align-items: end; }
