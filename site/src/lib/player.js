@@ -341,8 +341,15 @@ export class SequencePlayer {
     // A canvas that was hidden when the player started has no size yet.
     const cw = Math.round(this.canvas.clientWidth * Math.min(window.devicePixelRatio || 1, this.maxDpr || 2));
     if (cw && Math.abs(cw - this.canvas.width) > 1) this.resize();
-    const i0 = Math.floor(this.f), i1 = Math.min(i0 + 1, this.n - 1);
-    let t = this.f - i0;
+    let i0 = Math.floor(this.f), i1 = Math.min(i0 + 1, this.n - 1);
+    // Frames not rendered (n = 0 in the index: a set rendered at every other
+    // frame, or one still landing) are bridged: the blend runs between the
+    // nearest rendered frames either side, so a sparser set still scrubs
+    // continuously instead of holding one frame and jumping to the next.
+    const has = (i) => (this.index?.hi?.[i]?.n ?? 1) > 0;
+    while (i0 > 0 && !has(i0)) i0--;
+    while (i1 < this.n - 1 && !has(i1)) i1++;
+    let t = i1 > i0 ? Math.max(0, Math.min(1, (this.f - i0) / (i1 - i0))) : 0;
     if (NOBLEND) t = t < 0.5 ? 0 : 1;              // QA baseline only: the slideshow
     // Resting on a frame that has a hi-res still: show the still, sharpest.
     const rest = this.restBmp.get(Math.round(this.f));
