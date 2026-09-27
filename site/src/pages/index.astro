@@ -328,7 +328,7 @@ const P = (n: string) => `/img/posters/${n}`;
   .night-contact { display: grid; gap: 6px; font-style: normal; }
   /* the reveal makes every revealed line inline-block; this one keeps its rows */
   :global(html.js:not(.rm)) .night-contact[data-reveal] { display: inline-grid; }
-  .night-contact a { pointer-events: auto; padding-block: 4px; justify-self: start; }
+  .night-contact a { padding-block: 4px; justify-self: start; }   /* clickable only while its shot is on (.shot.on a) */
 
   .hud {
     position: absolute; z-index: 5; right: var(--margin); bottom: max(12px, env(safe-area-inset-bottom));
