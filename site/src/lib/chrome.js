@@ -40,3 +40,16 @@ if (nav) {
   }, { passive: true });
   nav.addEventListener("focusin", () => nav.classList.remove("away"));
 }
+
+// Images that sit below the first screen but close enough that the browser's
+// lazy loading would still fetch them before the load event (it looks about a
+// screen and a half ahead) wait for that event: [data-defer] pictures carry
+// their sources in data- attributes. Without JavaScript a <noscript> copy
+// shows instead.
+const undefer = () => {
+  for (const el of document.querySelectorAll("[data-defer] [data-srcset], [data-defer] [data-src]")) {
+    if (el.dataset.srcset) el.srcset = el.dataset.srcset;
+    if (el.dataset.src) el.src = el.dataset.src;
+  }
+};
+if (document.readyState === "complete") undefer(); else addEventListener("load", undefer, { once: true });

@@ -99,7 +99,10 @@ const root = depth ? "../".repeat(depth) : "./";
     transition: transform 360ms var(--ease-ui);
   }
   .nav.away { transform: translateY(-110%); }
-  .rm .nav, .rm .nav.away { transform: none; transition: none; }
+  /* Reduced motion: the nav still gets out of the way, without sliding.
+     Without JavaScript nothing moves it, so it scrolls away with the page. */
+  .rm .nav { transition: none; }
+  html:not(.js) .nav { position: absolute; }
   .nav a, .nav button { pointer-events: auto; color: #f7f3ea; }
   .nav-mark {
     font-family: var(--f-display); font-stretch: 125%; font-weight: 400; font-size: 17px;

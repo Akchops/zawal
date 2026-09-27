@@ -5,6 +5,12 @@
 import Base from "../../layouts/Base.astro";
 import studio from "../../content/studio.json";
 import copy from "../../content/copy.json";
+import { solarPosition, clock } from "../../lib/solar.js";
+
+// The room photograph is a render: the warehouse at zawal on 21 June.
+const roomMinutes = 740.7;
+const roomSun = solarPosition(2026, 6, 21, roomMinutes);
+const roomAlt = "The studio at 12:20 on 21 June: two rows of long teak tables under the lattice ceiling, the floor and the tables covered in small stars of sun; at the far end the roller door is open to a bright yard and a ghaf.";
 ---
 <Base title="Studio · ZAWAL" description={`${studio.people} people in a converted warehouse in Al Quoz, Dubai. ${studio.honesty}`} page="studio">
   <header class="st-head">
@@ -15,6 +21,19 @@ import copy from "../../content/copy.json";
   <section class="st-intro">
     {studio.studioText.map((t) => <p class="head">{t}</p>)}
   </section>
+
+  <figure class="st-room">
+    <!-- Its sources load after the page has (chrome.js): the browser's lazy
+         loading would otherwise fetch it inside the first-load budget. -->
+    <picture data-defer>
+      <source media="(max-width: 767px)" data-srcset="/img/studio/studio-s720.webp 720w, /img/studio/studio-s1080.webp 1080w" sizes="100vw" width="1080" height="1350" />
+      <img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" data-src="/img/studio/studio-l1280.webp"
+           data-srcset="/img/studio/studio-l960.webp 960w, /img/studio/studio-l1280.webp 1280w, /img/studio/studio-l1920.webp 1920w" sizes="100vw"
+           alt={roomAlt} width="1920" height="1080" decoding="async" />
+    </picture>
+    <noscript><img src="/img/studio/studio-l1280.webp" alt={roomAlt} width="1920" height="1080" /></noscript>
+    <figcaption class="mono dust">The studio · Al Quoz · 21 June · {clock(Math.floor(roomMinutes))} · alt {roomSun.alt.toFixed(1)}° · az {roomSun.az.toFixed(1)}°</figcaption>
+  </figure>
 
   <section class="st-founders on-sand" aria-labelledby="f-h">
     <h2 class="mono dust" id="f-h">The founders</h2>
@@ -55,6 +74,12 @@ import copy from "../../content/copy.json";
   .st-intro { padding: 4vh var(--margin) 14vh; display: grid; grid-template-columns: repeat(12, 1fr); gap: 28px var(--gutter); }
   .st-intro .head { grid-column: 4 / span 8; margin: 0; }
   @media (max-width: 767px) { .st-intro .head { grid-column: 1 / -1; } }
+
+  .st-room { margin: 0 0 12vh; }
+  .st-room img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fit: cover; background: #1a2025; }
+  :global(html:not(.js)) .st-room picture { display: none; }
+  @media (max-width: 767px) { .st-room img { aspect-ratio: 4 / 5; } }
+  .st-room figcaption { padding: 14px var(--margin) 0; }
 
   .st-founders { padding: 12vh var(--margin); }
   .st-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px var(--gutter); margin-top: 32px; }

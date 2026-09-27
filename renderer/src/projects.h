@@ -232,4 +232,110 @@ inline void buildMushrif(Scene& s) {
   addTree(s, g);
 }
 
+// ---- The studio, Al Quoz (12:20) ------------------------------------------------
+// The converted warehouse: steel trusses, a skylight strip down the middle
+// and, under it, a lattice ceiling cut from the studio's own shade drawings.
+// At zawal the sun stands almost overhead and the floor and the long tables
+// are covered in small stars. The roller door at the far end is open to the
+// yard, the brightest thing in the room.
+inline void buildStudio(Scene& s) {
+  s.groundMat = -1;
+  const float W = 14.0f, L = 30.0f, H = 6.6f, T = 0.3f;
+  s.addBox(V3(-60.0f, -0.6f, -60.0f), V3(60.0f, 0.0f, 90.0f), M_STREET, FY1, 0.0f);          // the yard outside
+  s.addBox(V3(0.0f, 0.0f, 0.0f), V3(W, 0.03f, L), M_STONE, FY1, 0.0f);                          // the screed floor
+  // walls; the far wall has the roller-door opening (5.2 m x 4.6 m)
+  s.addBox(V3(-T, 0.0f, -T), V3(0.0f, H, L + T), M_LIME, FALL, 0.01f);
+  s.addBox(V3(W, 0.0f, -T), V3(W + T, H, L + T), M_LIME, FALL, 0.01f);
+  s.addBox(V3(-T, 0.0f, -T), V3(W + T, H, 0.0f), M_LIME, FALL, 0.01f);
+  int far = s.addBox(V3(-T, 0.0f, L), V3(W + T, H, L + T), M_LIME, FALL, 0.01f);
+  s.addCut(far, V3(4.4f, -1.0f, L - 0.1f), V3(9.6f, 4.6f, L + T + 0.1f));
+  s.addBox(V3(4.3f, 4.6f, L - 0.05f), V3(9.7f, 4.75f, L + 0.02f), M_STEEL, FALL, 0.004f);      // door head
+  s.addBox(V3(4.4f, 4.75f, L - 0.35f), V3(9.6f, 5.25f, L - 0.02f), M_STEEL, FALL, 0.01f);       // the rolled-up door drum
+  // the yard: a boundary wall and a ghaf across it, in full sun
+  s.addBox(V3(-8.0f, 0.0f, L + 11.0f), V3(W + 8.0f, 3.2f, L + 11.4f), M_LIME, FALL, 0.01f);
+  TreeSpec g;
+  g.base = V3(4.6f, 0.0f, L + 8.0f); g.height = 6.4f; g.crown = 3.0f; g.trunkR = 0.2f; g.seed = 83; g.limbs = 6; g.fill = 0.85f; g.droop = 0.5f;
+  ghafSprays(g); g.cell = 0.03f;
+  addTree(s, g);
+  // roof: flat sheeting on the trusses, open over a 7 m skylight strip
+  const float RY = 7.7f;
+  s.addBox(V3(-T, RY, -T), V3(3.5f, RY + 0.25f, L + T), M_LIME_SHADE, FALL, 0.01f);
+  s.addBox(V3(10.5f, RY, -T), V3(W + T, RY + 0.25f, L + T), M_LIME_SHADE, FALL, 0.01f);
+  s.addBox(V3(3.5f, RY, -T), V3(10.5f, RY + 0.25f, 0.6f), M_LIME_SHADE, FALL, 0.01f);
+  s.addBox(V3(3.5f, RY, L - 0.6f), V3(10.5f, RY + 0.25f, L + T), M_LIME_SHADE, FALL, 0.01f);
+  s.addBox(V3(0.0f, H, -T), V3(W, RY, 0.0f), M_LIME, FALL, 0.01f);                            // gable infill
+  s.addBox(V3(0.0f, H, L), V3(W, RY, L + T), M_LIME, FALL, 0.01f);
+  s.addBox(V3(-T, H, 0.0f), V3(0.0f, RY, L), M_LIME, FALL, 0.01f);
+  s.addBox(V3(W, H, 0.0f), V3(W + T, RY, L), M_LIME, FALL, 0.01f);
+  // steel Pratt trusses every 3.75 m, spanning the width
+  for (float z = 3.75f; z < L - 0.5f; z += 3.75f) {
+    s.addBox(V3(0.0f, 6.2f, z - 0.08f), V3(W, 6.4f, z + 0.08f), M_STEEL, FALL, 0.004f);       // bottom chord
+    s.addBox(V3(0.0f, RY - 0.18f, z - 0.08f), V3(W, RY, z + 0.08f), M_STEEL, FALL, 0.004f);    // top chord
+    for (int k = 0; k <= 8; k++) {
+      float x = W * k / 8.0f;
+      s.addCapsule(V3(x, 6.4f, z), V3(x, RY - 0.18f, z), 0.045f, M_STEEL);
+      if (k < 8) {
+        float x1 = W * (k + 1) / 8.0f;
+        bool left = k < 4;
+        s.addCapsule(V3(left ? x : x1, RY - 0.18f, z), V3(left ? x1 : x, 6.4f, z), 0.038f, M_STEEL);
+      }
+    }
+  }
+  // the lattice ceiling under the skylight: the courtyard's star, a little larger
+  PatternParams st; st.type = PAT_STAR8; st.period = 0.42f; st.a = 0.325f; st.b = 0.09f; st.c = 0.007f; st.ou = 0.21f; st.ov = 0.21f;
+  s.addLattice(V3(2.6f, 5.6f, 0.9f), V3(11.4f, 5.66f, L - 0.9f), 1, st, M_TEAK, 0.003f);
+  for (float x : {2.6f, 11.4f}) s.addBox(V3(x - 0.08f, 5.5f, 0.9f), V3(x + 0.08f, 5.66f, L - 0.9f), M_TEAK, FALL, 0.004f);
+  for (float z = 3.75f; z < L - 0.5f; z += 3.75f)
+    for (float x : {2.7f, 7.0f, 11.3f}) s.addCapsule(V3(x, 5.66f, z), V3(x, 6.2f, z), 0.012f, M_STEEL);   // hangers
+  // two rows of long work tables, their tops under the stars
+  for (float x : {4.6f, 9.4f}) {
+    for (float z0 : {3.2f, 11.2f, 19.2f}) {
+      const float z1 = z0 + 6.4f;
+      s.addBox(V3(x - 0.55f, 0.72f, z0), V3(x + 0.55f, 0.76f, z1), M_TEAK, FALL, 0.004f);
+      for (float zz : {z0 + 0.1f, z1 - 0.14f})
+        for (float dx : {-0.5f, 0.46f}) s.addBox(V3(x + dx, 0.0f, zz), V3(x + dx + 0.04f, 0.72f, zz + 0.04f), M_STEEL, FALL, 0.003f);
+      for (float zc = z0 + 0.8f; zc < z1 - 0.4f; zc += 1.6f) {
+        addChair(s, x - 0.95f, zc, 0, M_TEAK);
+        if (zc > z0 + 2.0f) addChair(s, x + 0.95f, zc + 0.3f, 1, M_TEAK);
+      }
+      // on the table: white massing models, drawings, a book, a brass lamp
+      uint32_t h = (uint32_t)(x * 131.0f + z0 * 71.0f);
+      for (int k = 0; k < 6; k++) {
+        h = h * 1664525u + 1013904223u;
+        float u = (h >> 8) / 16777216.0f;
+        h = h * 1664525u + 1013904223u;
+        float v = (h >> 8) / 16777216.0f;
+        float bz = z0 + 0.6f + u * 5.0f, bx = x - 0.35f + v * 0.5f;
+        float bw = 0.08f + 0.1f * v, bd = 0.08f + 0.12f * u, bh = 0.05f + 0.22f * u * v;
+        s.addBox(V3(bx, 0.76f, bz), V3(bx + bw, 0.76f + bh, bz + bd), M_LIME, FALL, 0.003f);
+      }
+      s.addBox(V3(x - 0.42f, 0.76f, z0 + 3.0f), V3(x + 0.18f, 0.762f, z0 + 3.84f), M_LINEN_NATURAL, FALL, 0.0f);   // a drawing
+      s.addBox(V3(x + 0.1f, 0.76f, z0 + 4.6f), V3(x + 0.34f, 0.8f, z0 + 4.92f), M_LINEN_OCHRE, FALL, 0.004f);
+      s.addCyl(x + 0.3f, z0 + 1.4f, 0.07f, 0.76f, 0.78f, M_BRASS);
+      s.addCapsule(V3(x + 0.3f, 0.78f, z0 + 1.4f), V3(x + 0.3f, 1.15f, z0 + 1.4f), 0.008f, M_BRASS);
+    }
+  }
+  // a site model on a plinth near the door of the room, and plan chests along the west wall
+  s.addBox(V3(6.1f, 0.0f, 26.2f), V3(7.9f, 0.9f, 27.6f), M_STONE, FALL, 0.01f);
+  for (int k = 0; k < 9; k++) {
+    float bx = 6.25f + (k % 3) * 0.52f, bz = 26.35f + (k / 3) * 0.42f, bh = 0.06f + 0.05f * ((k * 7) % 5);
+    s.addBox(V3(bx, 0.9f, bz), V3(bx + 0.38f, 0.9f + bh, bz + 0.3f), M_LIME, FALL, 0.003f);
+  }
+  for (float z = 2.0f; z < 24.0f; z += 1.25f) s.addBox(V3(0.02f, 0.0f, z), V3(0.92f, 0.96f, z + 1.2f), M_TEAK_GREY, FALL, 0.006f);
+  // the pin-up wall: sheets of drawings on the east wall
+  for (int k = 0; k < 14; k++) {
+    float z = 2.6f + k * 1.55f, y0 = 1.25f + 0.1f * (k % 2);
+    s.addBox(V3(W - 0.012f, y0, z), V3(W, y0 + 0.84f, z + 1.19f), M_LINEN_NATURAL, FALL, 0.0f);
+  }
+  // two olives in pots under the stars at the far end
+  for (int k = 0; k < 2; k++) {
+    float px = k ? 11.2f : 2.9f, pz = 24.8f + 0.9f * k;
+    s.addSdf(SDF_PLANTER, V3(px, 0.0f, pz), 0.0f, 0.6f, {M_TERRACOTTA, M_SOIL});
+    TreeSpec pl;
+    pl.base = V3(px, 0.5f, pz); pl.height = 1.9f; pl.crown = 0.7f; pl.trunkR = 0.04f; pl.leafMat = M_LEAF_OLIVE;
+    pl.cell = 0.04f; pl.fill = 1.0f; pl.limbs = 5; pl.droop = 0.1f; pl.dcell = 0.07f; pl.clumpScale = 1.3f; pl.sprayBias = 0.6f; pl.coreClump = 0.9f; pl.noiseAmt = 0.55f; pl.seed = 91 + k;
+    addTree(s, pl);
+  }
+}
+
 }  // namespace zw

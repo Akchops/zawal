@@ -389,6 +389,7 @@ static bool cameraPreset(const std::string& name, CameraDesc& c) {
   if (name == "ghaf") { c.pos = V3(-1.9f, 1.6f, 5.2f); c.target = V3(14.0f, 1.6f, 8.8f); c.hfovDeg = 82.0f; c.shiftY = 0.34f; return true; }
   if (name == "sikka") { c.pos = V3(1.5f, 1.6f, 7.5f); c.target = V3(-2.6f, 1.6f, -6.0f); c.hfovDeg = 82.0f; c.shiftY = 0.72f; return true; }
   if (name == "mushrif") { c.pos = V3(6.3f, 1.45f, 0.75f); c.target = V3(3.4f, 1.15f, 16.0f); c.hfovDeg = 84.0f; c.shiftY = 0.14f; return true; }
+  if (name == "studio") { c.pos = V3(7.0f, 1.6f, 0.8f); c.target = V3(7.0f, 1.6f, 30.0f); c.hfovDeg = 80.0f; c.shiftY = 0.18f; return true; }
   if (name == "qudra") { c.pos = V3(-3.0f, 1.5f, 17.2f); c.target = V3(14.0f, 1.5f, -4.0f); c.hfovDeg = 80.0f; c.shiftY = 0.24f; return true; }
   if (name == "qudra_p") { c.pos = V3(-13.5f, 1.55f, 12.5f); c.target = V3(6.0f, 1.55f, -6.0f); c.hfovDeg = 62.0f; c.shiftY = 0.3f; return true; }
   return false;
@@ -419,6 +420,7 @@ int main(int argc, char** argv) {
   else if (sceneName == "ghaf") buildGhafHouse(sc);
   else if (sceneName == "sikka") buildSikka(sc);
   else if (sceneName == "mushrif") buildMushrif(sc);
+  else if (sceneName == "studio") buildStudio(sc);
   else { std::fprintf(stderr, "unknown scene %s\n", sceneName.c_str()); return 2; }
   // Lights: only the groups asked for (--lights 1,3); none by default.
   {
