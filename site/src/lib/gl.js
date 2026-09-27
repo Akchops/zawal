@@ -6,8 +6,9 @@ let probed = null;
 
 /**
  * Silent probe, run once. A context that would be software-rendered
- * (failIfMajorPerformanceCaveat) or lacks what we need counts as "no WebGL",
- * and the page drops to the Canvas 2D tier. The probe context is released.
+ * (failIfMajorPerformanceCaveat, or a software renderer by name) or lacks what
+ * we need counts as "no WebGL", and the page drops to the Canvas 2D tier. The
+ * probe context is released.
  */
 export function webglTier() {
   if (probed !== null) return probed;
@@ -18,7 +19,19 @@ export function webglTier() {
     // ?forcegl accepts a software context (headless QA only).
     const strict = !new URLSearchParams(location.search).has("forcegl");
     const gl = c.getContext("webgl", { failIfMajorPerformanceCaveat: strict, antialias: false });
-    if (gl && gl.getParameter(gl.MAX_TEXTURE_SIZE) >= 4096) probed = "webgl";
+    if (gl && gl.getParameter(gl.MAX_TEXTURE_SIZE) >= 4096) {
+      // Some browsers hand out a software rasteriser (SwiftShader, llvmpipe,
+      // WARP) without flagging the performance caveat, so read the renderer
+      // string too. RENDERER is the real name in Firefox; Chrome and Safari
+      // say "WebKit WebGL" there and give it through the debug extension
+      // (asking Firefox for that extension would log a deprecation warning).
+      let name = String(gl.getParameter(gl.RENDERER));
+      if (/^webkit webgl$/i.test(name)) {
+        const dbg = gl.getExtension("WEBGL_debug_renderer_info");
+        if (dbg) name = String(gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL));
+      }
+      if (!strict || !/swiftshader|llvmpipe|softpipe|software|basic render|warp/i.test(name)) probed = "webgl";
+    }
     gl?.getExtension("WEBGL_lose_context")?.loseContext();
     if (probed === "none" && c.getContext("2d")) probed = "2d";
   } catch {
