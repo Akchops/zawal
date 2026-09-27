@@ -386,6 +386,8 @@ async function start() {
     const fromLeft = +(shot.dataset.sun || 90) < 180;   // morning sun from the east = screen left here
     const span = to - from;
     const firstShot = from <= 0.001;
+    // The last caption stays: the film ends under it and the page scrolls on.
+    const lastShot = to >= beats - 0.001;
     scene(from - 0.05, to + 0.05, (p, b) => {
       const on = b > from - 0.02 && b < to + 0.02;
       shot.classList.toggle("on", on);
@@ -394,11 +396,35 @@ async function start() {
         const inStart = from + span * (0.02 + 0.05 * i), inEnd = inStart + Math.min(0.5, span * 0.2);
         const outStart = to - span * (0.2 - 0.02 * i), outEnd = outStart + span * 0.14;
         const bIn = clamp01((b - inStart) / (inEnd - inStart));
-        const aOut = clamp01((b - outStart) / (outEnd - outStart));
+        const aOut = lastShot ? 0 : clamp01((b - outStart) / (outEnd - outStart));
         shadeClip(el, aOut, firstShot ? 1 : bIn, k, fromLeft);
       });
     });
   }
+
+  // ---------------- text taller than the screen ----------------
+  // On short phones (320 x 568) the Method list and the Studio layer are taller
+  // than the stage. Rather than cut them, each pans up through the middle of
+  // its part of the film: it starts with its first line on screen and ends
+  // with its last line, the link, on screen. Where it fits, nothing moves.
+  const PAN_TOP = 20, PAN_BOTTOM = 72;   // clear of the top edge; clear of the HUD and the fiction tag
+  const panners = [
+    { el: stage.querySelector(".cap-method"), from: 22.35, to: 23.55, y: 0 },
+    { el: studioL.querySelector(".studio-inner"), from: 23.4, to: 25.4, y: 0 },
+  ].filter((q) => q.el);
+  scene(22.3, 25.5, (p, b) => {
+    const st = stage.getBoundingClientRect();
+    for (const q of panners) {
+      const r = q.el.getBoundingClientRect();
+      const top = r.top - st.top - q.y, bottom = r.bottom - st.top - q.y;   // where it sits unpanned
+      const y0 = Math.max(0, PAN_TOP - top), y1 = Math.min(0, st.height - PAN_BOTTOM - bottom);
+      const span = q.to - q.from;
+      const y = y0 + (y1 - y0) * ease(ramp(b, q.from + span * 0.3, q.from + span * 0.75));
+      if (Math.abs(y - q.y) < 0.25) continue;
+      q.y = y;
+      q.el.style.translate = y ? `0 ${y.toFixed(1)}px` : "";
+    }
+  });
 
   // ---------------- keyboard ----------------
   // Every caption stays in the page (only its opacity follows the film), so
@@ -410,8 +436,12 @@ async function start() {
     if (!part) return;
     const from = +part.dataset.from, to = +part.dataset.to, span = to - from;
     const b = beatNow();
-    if (b >= from + span * 0.35 && b <= to - span * 0.25) return;
-    scrollToY(beatToY(from + span * 0.5), true);
+    // A link at the end of a panned block is on screen once the pan is done.
+    const panned = panners.some((q) => q.el.contains(e.target));
+    const r = e.target.getBoundingClientRect(), st = stage.getBoundingClientRect();
+    const inView = r.top >= st.top && r.bottom <= st.bottom;
+    if (b >= from + span * 0.35 && b <= to - span * 0.25 && inView) return;
+    scrollToY(beatToY(from + span * (panned ? 0.74 : 0.5)), true);
   });
 
   // ---------------- drawing ----------------
