@@ -690,27 +690,32 @@ inline BSDF matCopperDeep(V3 p, V3 n) {
 inline BSDF matCoral(V3 p, V3 n, uint32_t seed) {
   BSDF b;
   float s = (seed & 1023) * 0.113f;
-  // Lime render worn back to the coral stone in large irregular patches; the
-  // stone is porous (dark pits), the render warm and chalky.
-  float wear = fbm(p * 0.9f + V3(s), 4) + 0.35f * fbm(p * 3.1f + V3(2.0f, s, 5.0f), 3);
-  // Patches are few and small (the render is maintained), mostly low down
-  // where hands, carts and splash wear it back.
-  float lowWear = 0.22f * (1.0f - smoothstep(0.3f, 2.2f, p.y));
-  float exposed = smoothstep(0.27f, 0.39f, wear + lowWear);
+  // Lime render over coral stone, maintained: the render is worn back to the
+  // stone in a few large, soft patches (one noise at a building's scale),
+  // more of them low down, where hands, carts and splash wear it. Colour and
+  // relief use the SAME mask, so every edge in the shading is a real edge of
+  // the render (a different or narrower mask draws contour lines instead).
+  auto exposedAt = [s](V3 q) {
+    float lowWear = 0.16f * (1.0f - smoothstep(0.3f, 2.0f, q.y));
+    float w = fbm(q * 0.55f + V3(s), 4) + 0.08f * fbm(q * 2.3f + V3(2.0f, s, 5.0f), 2);
+    return smoothstep(0.40f, 0.52f, w + lowWear);
+  };
+  float exposed = exposedAt(p);
   V3 render = lerp(hex(0xE6D9C1), hex(0xDCCBAD), 0.5f + 0.5f * fbm(p * 1.7f + V3(s), 3));
   V3 stone = lerp(hex(0xD2C2A6), hex(0xC4B192), 0.5f + 0.5f * gnoise(p * 9.0f + V3(s)));
   float pits = smoothstep(0.25f, 0.45f, gnoise(p * 55.0f + V3(s * 3.0f)));
-  stone *= 1.0f - 0.22f * pits;
+  stone *= 1.0f - 0.2f * pits;
   V3 a = lerp(render, stone, exposed);
-  a *= 1.0f + 0.04f * gnoise(p * 140.0f);
+  a *= 1.0f + 0.035f * gnoise(p * 140.0f);
   float foot = 1.0f - smoothstep(0.0f, 0.9f, p.y);
   a = lerp(a, a * hex(0xC4AE8C) * 1.2f, 0.6f * foot);
   b.albedo = a;
   b.f0 = V3(0.03f); b.alpha = 0.85f; b.metal = 0.0f;
-  b.n = bump(n, p, 0.0012f, 1.0f, [](V3 q) {
-    float w = fbm(q * 0.9f, 4);
-    float lw = 0.22f * (1.0f - smoothstep(0.3f, 2.2f, q.y));
-    return -0.004f * smoothstep(0.27f, 0.39f, w + lw) + 0.0015f * gnoise(q * 18.0f) - 0.0012f * smoothstep(0.25f, 0.45f, gnoise(q * 55.0f));
+  // Relief: the render stands 2.5 mm proud of the stone; the render's own
+  // trowel undulation; pits only where the stone shows.
+  b.n = bump(n, p, 0.0012f, 1.0f, [&](V3 q) {
+    float e = exposedAt(q);
+    return -0.0025f * e + 0.0012f * gnoise(q * 18.0f) - 0.0009f * e * smoothstep(0.25f, 0.45f, gnoise(q * 55.0f + V3(s * 3.0f)));
   });
   return b;
 }
