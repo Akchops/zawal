@@ -1,0 +1,128 @@
+{
+ "walk-street": {
+  "blend": {
+   "steps": 56,
+   "median": 0.789,
+   "max": 0.997,
+   "max_over_median": 1.3,
+   "frozen_share": 0.0,
+   "cv": 0.16
+  },
+  "noblend": {
+   "steps": 56,
+   "median": 0.149,
+   "max": 3.125,
+   "max_over_median": 20.9,
+   "frozen_share": 0.821,
+   "cv": 1.65
+  }
+ },
+ "walk-gate": {
+  "blend": {
+   "steps": 56,
+   "median": 3.529,
+   "max": 4.148,
+   "max_over_median": 1.2,
+   "frozen_share": 0.0,
+   "cv": 0.2
+  },
+  "noblend": {
+   "steps": 56,
+   "median": 0.031,
+   "max": 13.657,
+   "max_over_median": 445.5,
+   "frozen_share": 0.821,
+   "cv": 2.17
+  }
+ },
+ "walk-passage": {
+  "blend": {
+   "steps": 56,
+   "median": 1.271,
+   "max": 1.889,
+   "max_over_median": 1.5,
+   "frozen_share": 0.0,
+   "cv": 0.17
+  },
+  "noblend": {
+   "steps": 56,
+   "median": 0.0,
+   "max": 7.824,
+   "max_over_median": Infinity,
+   "frozen_share": 0.839,
+   "cv": 2.35
+  }
+ },
+ "day-morning": {
+  "blend": {
+   "steps": 56,
+   "median": 0.397,
+   "max": 0.61,
+   "max_over_median": 1.5,
+   "frozen_share": 0.0,
+   "cv": 0.26
+  },
+  "noblend": {
+   "steps": 56,
+   "median": 0.0,
+   "max": 3.286,
+   "max_over_median": Infinity,
+   "frozen_share": 0.821,
+   "cv": 2.23
+  }
+ },
+ "day-zawal": {
+  "blend": {
+   "steps": 56,
+   "median": 1.188,
+   "max": 1.511,
+   "max_over_median": 1.3,
+   "frozen_share": 0.25,
+   "cv": 0.61
+  },
+  "noblend": {
+   "steps": 56,
+   "median": 0.0,
+   "max": 8.568,
+   "max_over_median": Infinity,
+   "frozen_share": 0.875,
+   "cv": 2.67
+  }
+ },
+ "day-afternoon": {
+  "blend": {
+   "steps": 56,
+   "median": 1.707,
+   "max": 1.916,
+   "max_over_median": 1.1,
+   "frozen_share": 0.0,
+   "cv": 0.16
+  },
+  "noblend": {
+   "steps": 56,
+   "median": 0.0,
+   "max": 8.033,
+   "max_over_median": Infinity,
+   "frozen_share": 0.768,
+   "cv": 1.83
+  }
+ },
+ "day-dusk": {
+  "blend": {
+   "steps": 56,
+   "median": 0.791,
+   "max": 1.325,
+   "max_over_median": 1.7,
+   "frozen_share": 0.0,
+   "cv": 0.24
+  },
+  "noblend": {
+   "steps": 56,
+   "median": 0.0,
+   "max": 5.634,
+   "max_over_median": Infinity,
+   "frozen_share": 0.768,
+   "cv": 1.9
+  }
+ }
+}
