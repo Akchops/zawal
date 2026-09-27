@@ -271,16 +271,19 @@ async function start() {
   ];
 
   // ---------------- scenes ----------------
-  scene(0, 4, (p, b) => {
+  // A scene also runs once as the film leaves it (to park its player at the
+  // edge); only the scene the film is inside writes the HUD, or after a jump
+  // the scene left behind would overwrite the one arrived in.
+  scene(0, 4, (p, b, inside) => {
     const f = pw(mapB, b);
     pb.set(f);
     pb.shimmer = 1 - clamp01((f - 26) / 20);
-    if (b < 4) hudMinutes(minutesAt(IB, f));
+    if (inside && b < 4) hudMinutes(minutesAt(IB, f));
   });
-  scene(4, 10, (p, b) => {
+  scene(4, 10, (p, b, inside) => {
     const f = pw(mapA, b);
     if (!(inC(b) && sunOK === false)) pa.set(f);
-    if (b < 9.9) hudMinutes(minutesAt(IA, f));
+    if (inside && b < 9.9) hudMinutes(minutesAt(IA, f));
   });
   scene(9.5, 12.4, (p, b, inside) => {
     // Hand-over: the relight fades up over the day's identical last frame.
@@ -301,7 +304,7 @@ async function start() {
       } else applySun(idle);
     }
   });
-  scene(11.6, 14.4, (p, b) => {
+  scene(11.6, 14.4, (p, b, inside) => {
     // In through the canopy's shadow, drawn hour by hour, out through its gap.
     const inM = ramp(b, 11.7, 12.2);
     const m = `${(100 - 100 * inM).toFixed(2)}% 0`;
@@ -312,8 +315,10 @@ async function start() {
       studyL.style.webkitMaskPosition = studyL.style.maskPosition = m;
     } else studyL.style.webkitMaskImage = studyL.style.maskImage = "none";
     drive(ramp(b, 12.05, 13.55));
-    hudSun("21·06", `${String(6 + Math.min(13, Math.floor(ramp(b, 12.05, 13.3) * 13.99))).padStart(2, "0")}:00`, 60, 180);
-    setText("alt", "06:00 → 19:00"); setText("az", "JUMEIRAH"); setText("shadow", "the Shade Study");
+    if (inside && b < 13.4) {
+      hudSun("21·06", `${String(6 + Math.min(13, Math.floor(ramp(b, 12.05, 13.3) * 13.99))).padStart(2, "0")}:00`, 60, 180);
+      setText("alt", "06:00 → 19:00"); setText("az", "JUMEIRAH"); setText("shadow", "the Shade Study");
+    }
     const ap = ramp(b, 13.6, 14.3);
     if (ap > 0 && !apertureOrigin) measureAperture();
     if (apertureOrigin) {
