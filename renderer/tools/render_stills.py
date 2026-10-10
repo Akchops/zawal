@@ -3,7 +3,7 @@
 renders a sequence frame at a large size and exports the delivery tiers.
 
     render_stills.py b 0 portrait     -> site/public/img/hero/b000-p{720,1080,1440}.webp
-    render_stills.py b 0 landscape    -> site/public/img/hero/b000-l{1600,2560}.webp
+    render_stills.py b 0 landscape    -> site/public/img/hero/b000-l{1280,1600,2560}.webp
 
 Resumable: skips the render when the PNG master exists.
 """
@@ -20,7 +20,7 @@ from render_seq import render_cmd  # noqa: E402
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 OUT = os.path.join(ROOT, "site", "public", "img", "hero")
-SIZES = {"portrait": ((1440, 2560), [720, 1080, 1440]), "landscape": ((2560, 1440), [1600, 2560])}
+SIZES = {"portrait": ((1440, 2560), [720, 1080, 1440]), "landscape": ((2560, 1440), [1280, 1600, 2560])}
 Q = 84
 
 
