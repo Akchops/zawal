@@ -337,6 +337,16 @@ Done in the order asked, **before** any sequence frame is rendered, so none of i
 
 ---
 
+### 9.8 The approach replaces the street walk (phone first)
+
+The opening was redirected after review: instead of walking up the street, the camera starts on the sun's own line and comes down onto the courtyard. On phones it replaces SEQ-B; desktop keeps the street walk until the phone version has been watched on a real phone and approved. The day, the live sun and the project morphs are unchanged.
+
+- **Path** (`renderer/tools/plan_approach.py`, 151 frames over 10 s of film, 07:30 → 08:00): 0–2 s on the sun's line (the camera stands where the sun is, so every shadow hides behind what casts it), dollying in from 330 m; 2–5.6 s a spiral east → south → west → north, the shadows opening as it leaves the sun; 5.6–7 s along the roofs from the north, the wind tower passing about 2.3 m to the left; 7–8.4 s straight down through one star of the canopy (x 3.6, z 3.96, clear of the teak beams); 8.4–10 s back north and down onto SEQ-A frame 0. The planner asserts the path clears the tower and stays inside the star through the canopy's thickness. Each frame carries its second (`t`), and the page maps the ten seconds evenly onto beats 0–4.
+- **Exact landing.** The last frame is not rendered: its tiers are byte copies of a000, so the hand-over to the day cannot jump. The approach scene, rendered at a000's camera, matches the house scene exactly in depth and normals (a ground slab that had filled the channel and pool was found by this test and cut away).
+- **The rest of the building.** The film had modelled only what its cameras saw. For the orbit: roofs (screed in three coatings, repair bays, filled cracks, bitumen patches, drainage grime, shamal sand), parapets and copings, the west, north and back facades with screened windows, spouts and their stains, a stair head, a pergola; the neighbours dressed the same way; a quarter of courtyard houses out to about 190 m, with lanes, trees, wind towers, water tanks and AC units, and a low town beyond.
+- **Weathering where the camera now looks.** Outsides seen from the air get weathering that reads at 30–100 m (per-wall limewash tone, dirt curtains under copings, rising damp with a salt line, patched re-plaster, sand drifted against parapets) on top of the street facade's close-range treatment. The courtyard is excluded, so the day film is unchanged.
+- **Player.** Free cameras (`level: false`) keep their pitch in reprojection; the depth encoding range is per index (2 cm to 1.5 km for the approach).
+
 ## 10. Honesty, SEO, fallbacks (unchanged from the brief, restated as build rules)
 - Footer: *ZAWAL is a fictional studio. This site is a design demonstration.* · *Made by Aarav Chopra*. Persistent corner mark on every page.
 - `<meta name="robots" content="noindex, nofollow">` on every page; no structured data; no real clients, awards, developers, people or buildings.
