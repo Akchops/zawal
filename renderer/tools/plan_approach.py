@@ -2,13 +2,16 @@
 """The approach: ten seconds of scroll from the sun's own line down onto the
 day's first frame.
 
-  0.0-2.0 s  on the sun's line. The camera stands where the sun is, looking
-             along its rays at the courtyard house, and dollies in. From there
+  0.0-1.8 s  on the sun's line. The camera stands where the sun is, looking
+             along its rays at the courtyard house, framed tight on it (its east
+             facade, gate, ghaf, canopy and wind tower fill the phone's width),
+             and dollies in on a long lens, pushing in slowly. From there
              every shadow hides behind the thing that casts it, so the quarter
              reads flat and shadowless.
-  2.0-5.6 s  it peels off the line and spirals down, east, south, west, north,
+  1.8-4.8 s  it peels off the line and spirals down, east, south, west, north,
              the shadows opening as it leaves the sun.
-  5.6-7.0 s  from the north it skims the roofs; the wind tower passes on the left.
+  4.8-7.0 s  from the north it skims the roofs, slowly; the wind tower sweeps
+             past on the left.
   7.0-8.4 s  over the courtyard it tips down and dives through one star of the
              canopy lattice (holes ~23 cm across; the camera is a point).
   8.4-10 s   under the canopy it pulls back north and down and lands exactly on
@@ -39,17 +42,24 @@ SEQ_A = os.path.join(ROOT, "sequences", "seq_a.json")
 
 DURATION = 10.0
 T0_MIN, T1_MIN = 450.0, 480.0          # 07:30 -> 08:00, as the street walk did
-C = (4.0, 2.0, 6.6)                    # what the opening and the orbit look at: the courtyard
+C = (4.0, 3.5, 6.4)                    # what the opening and the orbit look at: the house's centre
 SX, SY, SZ = 3.6, 5.25, 3.96           # the star: a canopy hole clear of the teak beams
 END = {"pos": (3.6, 1.55, 0.9), "tgt": (3.6, 1.55, 14.0)}   # SEQ-A frame 0
 END_FOV = {"l": 84.0, "p": 88.0}
 END_SHIFT = {"l": 0.22, "p": 0.16}
 END_EV = 1.2
-SUNLINE_T = 1.6                        # up to here the camera is exactly on the sun's line
+SUNLINE_T = 1.5                        # up to here the camera is exactly on the sun's line
+SPIRAL_END = 4.8                       # the aerial part: the house keeps its size in the frame until here
+# Half the frame's height, in metres at the house: a long lens on the sun's line
+# makes the house fill the phone's width from the first frame, then it widens as
+# the camera closes in, so the house keeps its size while the quarter's
+# perspective changes around it.
+K_OPEN, K_PUSH, K_WIDE, K_END = 20.0, 16.0, 28.0, 13.0
+K_WIDE_T = 2.9
 
 # Frames per segment (uniform in time inside a segment). Dense where the
 # picture changes fastest: the tower pass and the dive.
-SEGMENTS = [(0.0, 2.0, 20), (2.0, 5.6, 44), (5.6, 7.0, 26), (7.0, 8.4, 34), (8.4, 10.0, 26)]
+SEGMENTS = [(0.0, 1.8, 18), (1.8, SPIRAL_END, 60), (SPIRAL_END, 7.0, 38), (7.0, 8.4, 34), (8.4, 10.0, 26)]
 
 
 def minutes_at(t):
@@ -80,28 +90,64 @@ def sun_phi_el(t):
 
 
 def sunline_dist(t):
-    # 330 m -> 190 m over the opening, easing out into the peel-off
-    u = min(1.0, t / 2.0)
-    return 330.0 - 140.0 * (1.0 - (1.0 - u) ** 1.6)
+    # 330 m -> 160 m over the opening at a steady pace; the spiral takes over
+    # that inward speed, so there is no stall where the camera leaves the line
+    return 330.0 - 170.0 * min(1.0, t / 1.8)
+
+
+def frame_k(t):
+    """Half-height of the frame at the house (m) during the aerial part: tight
+    on the house's own east facade while on the sun's line (the gate, the
+    lantern, the ghaf, the wind tower above: unmistakably the film's house),
+    opening out through the spiral so the orbit reads, tightening again as it
+    comes down to the roofs."""
+    def ss(a, b, x):
+        u = min(1.0, max(0.0, (x - a) / (b - a)))
+        return u * u * (3 - 2 * u)
+    if t <= SUNLINE_T:
+        return K_OPEN + (K_PUSH - K_OPEN) * t / SUNLINE_T      # a slow push in
+    if t <= K_WIDE_T:
+        return K_PUSH + (K_WIDE - K_PUSH) * ss(SUNLINE_T, K_WIDE_T, t)
+    return K_WIDE + (K_END - K_WIDE) * ss(K_WIDE_T, SPIRAL_END, t)
 
 
 def keys():
     """(t, pos, tgt, fov_l, fov_p, shiftScale, ev)"""
     k = []
     for t in (0.0, 0.5, 1.0, SUNLINE_T):
-        k.append((t, on_sunline(t, sunline_dist(t)), C, 24.0 + 4.0 * t, 20.0 + 4.0 * t, 0.0, 0.75))
-    ps, es = sun_phi_el(2.0)
-    # The spiral: off the sun's line, east -> south -> west -> north, descending
-    # at a near-constant angle of view, closing in.
-    spiral = [(2.1, ps + 6, 176, es + 0.5), (2.7, 20, 150, 26), (3.3, 70, 118, 26.5), (3.9, 125, 90, 26.5),
-              (4.5, 180, 66, 26), (5.1, 228, 46, 25), (5.6, 258, 32, 23)]
-    for j, (t, phi, r, el) in enumerate(spiral):
-        a = j / (len(spiral) - 1)
-        k.append((t, sph(phi, r, el), C, 40 + 22 * a, 36 + 26 * a, 0.0, 0.78 + 0.12 * a))
-    # North of the house at roof height; along the roofs past the wind tower
-    # (x 6-9, z -3.95..-0.95, 13 m tall: it passes on the left, ~2.3 m off).
-    k.append((6.1, (3.9, 11.2, -11.5), (3.7, 6.5, 4.0), 66, 64, 0.0, 0.92))
-    k.append((6.55, (3.7, 10.4, -4.2), (3.6, 4.8, 4.2), 68, 66, 0.0, 0.95))
+        k.append((t, on_sunline(t, sunline_dist(t)), C, 20.0, 12.0, 0.0, 0.75))
+    # The spiral: off the sun's line, east -> south -> west -> north, closing
+    # in and descending. Its turning eases out as it reaches due north, so its
+    # last motion is inward, which there is south: straight into the run along
+    # the roofs, with no swerve. Written as dense keys from smooth functions.
+    # (fov here is a placeholder: plan() sets it from frame_k.)
+    ps, es = sun_phi_el(1.8)
+    r0, r1 = sunline_dist(1.8), 20.0
+    T = SPIRAL_END - 1.8
+    m0 = (170.0 / 1.8) * T / (r0 - r1)        # leaves the line at the dolly's speed
+    m1 = 6.0 * T / (r0 - r1)                  # arrives at the roof run's speed
+    n = 24
+    for j in range(n + 1):
+        u = j / n
+        t = 1.8 + T * u
+        sm = u * u * (3 - 2 * u)              # the turn eases in and out
+        phi = ps + (270.0 - ps) * sm
+        S = (3 * u * u - 2 * u ** 3) + m0 * (u ** 3 - 2 * u * u + u) + m1 * (u ** 3 - u * u)
+        r = r0 + (r1 - r0) * S
+        el = es + (22.0 - es) * sm
+        pos = sph(phi, r, el)
+        fov_p = 2 * math.degrees(math.atan(frame_k(t) / math.dist(pos, C)))
+        fov_l = 2 * math.degrees(math.atan(1.25 * frame_k(t) * 16 / 9 / math.dist(pos, C)))
+        k.append((t, pos, C, fov_l, fov_p, 0.0, 0.78 + 0.13 * u))
+    # North of the house at roof height, then slowly along the roofs past the
+    # wind tower (x 6-9, z -3.95..-0.95, 13 m tall): it passes on the left,
+    # ~2.3 m off. The camera turns to it as it comes, holds it near the middle
+    # of the frame, then pans back to the courtyard so the tower sweeps out
+    # past the lens. 2.2 s: the move's best moment is not its shortest.
+    k.append((5.25, (3.85, 10.9, -9.35), (7.2, 9.6, -1.5), 66, 65, 0.0, 0.93))
+    k.append((5.7, (3.7, 10.8, -6.6), (7.4, 9.2, -0.2), 67, 65, 0.0, 0.94))
+    k.append((6.15, (3.68, 10.5, -4.4), (6.6, 7.0, 2.2), 67, 65.5, 0.0, 0.95))
+    k.append((6.55, (3.65, 10.2, -2.0), (4.6, 3.2, 4.6), 68, 66, 0.0, 0.97))
     k.append((7.0, (3.6, 9.3, 1.5), (3.6, 0.0, 4.6), 70, 68, 0.0, 1.0))
     # The dive: straight down onto the star and through it.
     k.append((7.5, (SX, 7.2, 3.62), (SX, 0.0, SZ + 0.35), 72, 70, 0.0, 1.05))
@@ -149,24 +195,52 @@ def scalar(k, t, field):
     return a[field] + (b[field] - a[field]) * u
 
 
-def times():
+def times(k=None):
+    """Frame times. Uniform inside each segment, except the spiral, whose frames
+    are spaced by how much the picture turns (view-direction change over the
+    field of view), so its fast middle is as finely sampled as its ends."""
     ts = []
     for (a, b, n) in SEGMENTS:
-        ts += [a + (b - a) * i / n for i in range(n)]
+        if k is not None and a == 1.8:
+            fine = [a + (b - a) * j / 2000 for j in range(2001)]
+            cum, acc, prev = [0.0], 0.0, None
+            for t in fine:
+                p, g = at(k, t, 1), at(k, t, 2)
+                v = [g[q] - p[q] for q in range(3)]
+                nv = math.sqrt(sum(x * x for x in v))
+                v = [x / nv for x in v]
+                fov = 2 * math.degrees(math.atan(frame_k(t) / math.dist(p, C)))
+                if prev is not None:
+                    dot = max(-1.0, min(1.0, sum(x * y for x, y in zip(v, prev))))
+                    acc += math.degrees(math.acos(dot)) / fov + 0.002   # + a floor, so slow parts still move on
+                    cum.append(acc)
+                prev = v
+            for i in range(n):
+                goal = acc * i / n
+                j = next(q for q in range(len(cum)) if cum[q] >= goal - 1e-12)
+                ts.append(fine[j])
+        else:
+            ts += [a + (b - a) * i / n for i in range(n)]
     return ts + [DURATION]
 
 
 def plan():
     k = keys()
     out = []
-    for i, t in enumerate(times()):
+    for i, t in enumerate(times(k)):
         pos, tgt = at(k, t, 1), at(k, t, 2)
         if t <= SUNLINE_T + 1e-9:
             pos, tgt = on_sunline(t, sunline_dist(t)), C   # exactly on the sun's line
+        fov_l, fov_p = scalar(k, t, 3), scalar(k, t, 4)
+        if t <= SPIRAL_END + 1e-9:
+            # the house keeps its size: half-height frame_k(t) at the distance of C
+            d = math.dist(pos, C)
+            fov_p = 2 * math.degrees(math.atan(frame_k(t) / d))
+            fov_l = 2 * math.degrees(math.atan(1.25 * frame_k(t) * 16 / 9 / d))
         m = minutes_at(t)
         alt, az = solar_position(2026, 6, 21, m)
         f = {"i": i, "t": round(t, 4), "pos": [round(v, 4) for v in pos], "tgt": [round(v, 4) for v in tgt],
-             "fov_l": round(scalar(k, t, 3), 3), "fov_p": round(scalar(k, t, 4), 3),
+             "fov_l": round(fov_l, 3), "fov_p": round(fov_p, 3),
              "shiftScale": round(scalar(k, t, 5), 4), "ev": round(scalar(k, t, 6), 3),
              "minutes": round(m, 4), "time": clock(m), "alt": round(alt, 3), "az": round(az, 3)}
         out.append(f)

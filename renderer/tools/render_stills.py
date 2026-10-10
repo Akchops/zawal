@@ -14,6 +14,9 @@ import sys
 
 from PIL import Image
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from render_seq import render_cmd  # noqa: E402
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 OUT = os.path.join(ROOT, "site", "public", "img", "hero")
@@ -30,12 +33,8 @@ def main():
     raw = os.path.join(scratch, "stills", f"{f['file']}-{variant[0]}")
     master = raw + ".png"
     if not os.path.exists(master):
-        c = f["cam"]
-        cmd = [os.path.join(ROOT, "renderer", "bin", "zawal"), "--scene", "house", "--cam", "court", "--time", f["time"],
-               "--w", str(W), "--h", str(H), "--spp", str(spp), "--out", raw,
-               "--campos", ",".join(map(str, c["pos"])), "--camtgt", ",".join(map(str, c["tgt"])), "--shift", str(c["shift"])]
-        cmd += ["--vfov", str(c["fov"])] if c["fovAxis"] == "v" else ["--hfov", str(c["fov"])]
-        subprocess.run(cmd, check=True)
+        # the same command as the sequence render (scene, free camera, fov axis)
+        subprocess.run(render_cmd(f, W, H, spp, raw), check=True)
         subprocess.run([sys.executable, os.path.join(HERE, "post.py"), raw, master, "--ev", str(f["ev"])], check=True)
     os.makedirs(OUT, exist_ok=True)
     img = Image.open(master).convert("RGB")
