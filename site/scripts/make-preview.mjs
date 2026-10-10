@@ -1,14 +1,36 @@
 // The private preview: the built site (dist/) rewritten so every URL is
 // relative (it is served from an unknown folder, not a domain root) and page
 // links name their index.html (the host does not map folders to it).
-//   node scripts/make-preview.mjs [outDir=preview]
-import { cpSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+//   node scripts/make-preview.mjs [outDir=preview] [--phone-only]
+import { cpSync, existsSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const site = join(dirname(fileURLToPath(import.meta.url)), "..");
 const dist = join(site, "dist");
-const out = join(site, process.argv[2] || "preview");
+const args = process.argv.slice(2);
+const phoneOnly = args.includes("--phone-only");
+const out = join(site, args.find((a) => !a.startsWith("--")) || "preview");
+
+// Every sequence the home page can ask for must be there and complete: a
+// missing desktop index makes the desktop players hold their first picture
+// for the whole film (the scroll still runs, the picture does not). Only an
+// explicit --phone-only preview may leave the desktop bases out.
+{
+  const need = phoneOnly ? ["a-p", "b-p"] : ["a-p", "b-p", "a-l", "b-l", "a-t", "b-t"];
+  const bad = [];
+  for (const base of need) {
+    const f = join(dist, "seq", `${base}.json`);
+    if (!existsSync(f)) { bad.push(`${base}: missing`); continue; }
+    const idx = JSON.parse(readFileSync(f, "utf8"));
+    const gaps = idx.hi.filter((x) => x.n === 0).length;
+    if (gaps) bad.push(`${base}: ${gaps}/${idx.hi.length} frames not rendered`);
+  }
+  if (bad.length) {
+    console.error(`preview refused, sequences incomplete:\n  ${bad.join("\n  ")}\n(pass --phone-only to publish the phone set alone)`);
+    process.exit(1);
+  }
+}
 rmSync(out, { recursive: true, force: true });
 cpSync(dist, out, { recursive: true });
 
