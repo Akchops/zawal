@@ -1,0 +1,50 @@
+[
+ {
+  "viewport": "320x640",
+  "mode": "normal",
+  "console": [],
+  "network": []
+ },
+ {
+  "viewport": "320x640",
+  "mode": "rm",
+  "console": [],
+  "network": []
+ },
+ {
+  "viewport": "320x640",
+  "mode": "nogl",
+  "console": [],
+  "network": []
+ },
+ {
+  "viewport": "320x640",
+  "mode": "nojs",
+  "console": [],
+  "network": []
+ },
+ {
+  "viewport": "390x844",
+  "mode": "normal",
+  "console": [],
+  "network": []
+ },
+ {
+  "viewport": "390x844",
+  "mode": "rm",
+  "console": [],
+  "network": []
+ },
+ {
+  "viewport": "390x844",
+  "mode": "nogl",
+  "console": [],
+  "network": []
+ },
+ {
+  "viewport": "390x844",
+  "mode": "nojs",
+  "console": [],
+  "network": []
+ }
+]
