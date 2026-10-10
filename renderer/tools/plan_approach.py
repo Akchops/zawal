@@ -56,6 +56,10 @@ SPIRAL_END = 4.8                       # the aerial part: the house keeps its si
 # perspective changes around it.
 K_OPEN, K_PUSH, K_WIDE, K_END = 20.0, 16.0, 28.0, 13.0
 K_WIDE_T = 2.9
+# Desktop (landscape, fov is horizontal): half the frame's WIDTH at the house is
+# K_LAND x the phone's half-height, so the house spans about three quarters of
+# the screen in the opening, as it spans the phone's width.
+K_LAND = 0.82
 
 # Frames per segment (uniform in time inside a segment). Dense where the
 # picture changes fastest: the tower pass and the dive.
@@ -137,7 +141,7 @@ def keys():
         el = es + (22.0 - es) * sm
         pos = sph(phi, r, el)
         fov_p = 2 * math.degrees(math.atan(frame_k(t) / math.dist(pos, C)))
-        fov_l = 2 * math.degrees(math.atan(1.25 * frame_k(t) * 16 / 9 / math.dist(pos, C)))
+        fov_l = 2 * math.degrees(math.atan(K_LAND * frame_k(t) / math.dist(pos, C)))
         k.append((t, pos, C, fov_l, fov_p, 0.0, 0.78 + 0.13 * u))
     # North of the house at roof height, then slowly along the roofs past the
     # wind tower (x 6-9, z -3.95..-0.95, 13 m tall): it passes on the left,
@@ -236,7 +240,7 @@ def plan():
             # the house keeps its size: half-height frame_k(t) at the distance of C
             d = math.dist(pos, C)
             fov_p = 2 * math.degrees(math.atan(frame_k(t) / d))
-            fov_l = 2 * math.degrees(math.atan(1.25 * frame_k(t) * 16 / 9 / d))
+            fov_l = 2 * math.degrees(math.atan(K_LAND * frame_k(t) / d))
         m = minutes_at(t)
         alt, az = solar_position(2026, 6, 21, m)
         f = {"i": i, "t": round(t, 4), "pos": [round(v, 4) for v in pos], "tgt": [round(v, 4) for v in tgt],
@@ -291,9 +295,10 @@ def write_spec(frames):
     spec = json.load(open(SEQ_B))
     # depth from 2 cm (inside the canopy star) to the far town
     spec["portrait"] = {"size": [720, 1280], "depthRange": [0.02, 1500.0], "frames": to_spec(frames, "portrait")}
-    spec["title"] = "The approach (phone); the street walk (desktop, interim)"
+    spec["landscape"] = {"size": [1600, 900], "depthRange": [0.02, 1500.0], "frames": to_spec(frames, "landscape")}
+    spec["title"] = "The approach"
     json.dump(spec, open(SEQ_B, "w"), indent=1)
-    print("wrote", SEQ_B, len(frames), "portrait frames")
+    print("wrote", SEQ_B, len(frames), "frames, portrait and landscape")
 
 
 def render(frames, W, H, spp, out, variant="p"):
