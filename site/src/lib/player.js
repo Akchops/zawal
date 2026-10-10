@@ -89,7 +89,7 @@ uniform vec4 uCover;             // cover-crop, as in TIME_FS
 // Cameras, 4 x vec4 each: pos.xyz, tan(vfov/2) | fwd.xyz, aspect | right.xyz,
 // lens shift | up.xyz, 0. T = the in-between camera, A and B = the frames'.
 uniform vec4 uCamT[4], uCamA[4], uCamB[4];
-uniform vec2 uDepth;             // ln(0.25 m), ln(400 / 0.25): the depth encoding's range
+uniform vec2 uDepth;             // ln(near), ln(far / near): the depth encoding's range
 ${SRGB}
 ${SHIMMER}
 
@@ -111,9 +111,9 @@ vec2 project(vec4 c0, vec4 c1, vec4 c2, vec4 c3, vec3 p) {
   return vec2((dot(v, c2.xyz) / z / (c0.w * c1.w) + 1.0) * 0.5,
               (dot(v, c3.xyz) / z / c0.w - c2.w + 1.0) * 0.5);
 }
-// Metres from a depth texel: the 8-bit value is log-encoded between 0.25 m
-// and 400 m (uDepth), which spends the precision near the camera, where
-// parallax is largest.
+// Metres from a depth texel: the 8-bit value is log-encoded between near and
+// far (uDepth: 0.25 m to 400 m unless the index says otherwise), which spends
+// the precision near the camera, where parallax is largest.
 float depthAt(sampler2D d, vec2 uv) { return exp(uDepth.x + img(d, uv).r * uDepth.y); }
 
 // Where does frame C see the surface that the in-between camera sees along
@@ -158,7 +158,9 @@ void main() {
   gl_FragColor = vec4(srgb(c), 1.0);
 }`;
 
-const LOG_DMIN = Math.log(0.25), LOG_RANGE = Math.log(400 / 0.25);
+// Default depth encoding range; an index may carry its own (the approach spans
+// 3 cm, inside a canopy star, to the far town).
+const DEPTH_RANGE = [0.25, 400];
 // ?noblend shows the nearest frame only: the slideshow the blend replaces (QA).
 const NOBLEND = typeof location !== "undefined" && new URLSearchParams(location.search).has("noblend");
 
@@ -409,7 +411,8 @@ export class SequencePlayer {
       gl.uniform4fv(uni.uCamT, camUniform(ct));
       gl.uniform4fv(uni.uCamA, camUniform(cameraFrom(fa, imgAspect)));
       gl.uniform4fv(uni.uCamB, camUniform(cameraFrom(fb, imgAspect)));
-      gl.uniform2f(uni.uDepth, LOG_DMIN, LOG_RANGE);
+      const [d0, d1] = this.index.depthRange || DEPTH_RANGE;
+      gl.uniform2f(uni.uDepth, Math.log(d0), Math.log(d1 / d0));
       gl.uniform1f(uni.uT, t);
       gl.uniform4fv(uni.uCover, coverUv(imgAspect, this.viewAspect));
       gl.uniform1f(uni.uShimmer, this.shimmer);

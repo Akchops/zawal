@@ -20,6 +20,18 @@ const work = projects.map((p, i) => {
 // First paint: the 720 (phones) / 1280 (desktop) street; the player swaps in
 // the sharp still for the screen (1080/1440, 1600/2560) right after load.
 const P = (n: string) => `/img/posters/${n}`;
+// Phones open on the approach (from the sun's line, down through a star of
+// the canopy); desktop keeps the street walk for now. The two are different
+// pictures, so the stills under the first four shots come in a pair, one
+// per orientation, each with its own description.
+const AP = {
+  b000: "Dubai seen from where the sun stands at 07:30: the flat roofs and courtyards of an old quarter, every shadow hidden behind the thing that casts it.",
+  shots: [
+    { file: "b031", alt: "Off the sun's line and circling down: the morning shadows open across the roofs, the courtyard house at the centre." },
+    { file: "b081", alt: "Skimming the roofs from the north at 07:49: the wind tower passes close on the left; ahead, the courtyard's lattice canopy." },
+    { file: "b115", alt: "Straight down onto the canopy, a hand's width above one of its star-shaped holes; the courtyard floor below." },
+  ],
+};
 ---
 <Base
   title={c.title}
@@ -53,7 +65,7 @@ const P = (n: string) => `/img/posters/${n}`;
            motion, they are a long-form article, each with its still. -->
       <div class="shot shot-cold" data-shot data-from="0" data-to="0.55" data-sun="74.5">
         <!-- the same files as the first paint, so the static still costs no extra bytes -->
-        <picture class="still"><source media="(orientation: portrait)" srcset="/img/hero/b000-p720.webp" /><img src="/img/hero/b000-l1280.webp" alt="The east facade of a limewashed house at 07:30, the low sun full on it, a pierced brass lantern by the gate, a quiet street with parked cars and a ghaf tree." width="1280" height="720" /></picture>
+        <div class="still"><img class="only-p" src="/img/hero/b000-p720.webp" alt={AP.b000} width="720" height="1280" /><img class="only-l" src="/img/hero/b000-l1280.webp" alt="The east facade of a limewashed house at 07:30, the low sun full on it, a pierced brass lantern by the gate, a quiet street with parked cars and a ghaf tree." width="1280" height="720" /></div>
         <div class="cap cap-cold">
           <p class="mono kicker">{c.coldOpen.kicker}</p>
           <h1 class="wordmark"><span class="cold-line">ZAWAL</span></h1>
@@ -63,17 +75,17 @@ const P = (n: string) => `/img/posters/${n}`;
       </div>
 
       <div class="shot" data-shot data-from="0.45" data-to="1.5" data-sun="74.5">
-        <picture class="still"><source media="(orientation: portrait)" srcset={P("b036-p.webp")} /><img src={P("b036-l.webp")} alt="Walking north up the street in the morning sun, the facade blazing on the left." loading="lazy" width="1600" height="900" /></picture>
+        <div class="still"><img class="only-p" src={P(`${AP.shots[0].file}-p.webp`)} alt={AP.shots[0].alt} loading="lazy" width="720" height="1280" /><img class="only-l" src={P("b036-l.webp")} alt="Walking north up the street in the morning sun, the facade blazing on the left." loading="lazy" width="1600" height="900" /></div>
         <div class="cap cap-low"><p class="statement" data-reveal>{c.street}</p></div>
       </div>
 
       <div class="shot" data-shot data-from="1.5" data-to="2.5" data-sun="75">
-        <picture class="still"><source media="(orientation: portrait)" srcset={P("b060-p.webp")} /><img src={P("b060-l.webp")} alt="Turning into the gate recess: the teak doors folded back, the dark passage beyond." loading="lazy" width="1600" height="900" /></picture>
+        <div class="still"><img class="only-p" src={P(`${AP.shots[1].file}-p.webp`)} alt={AP.shots[1].alt} loading="lazy" width="720" height="1280" /><img class="only-l" src={P("b060-l.webp")} alt="Turning into the gate recess: the teak doors folded back, the dark passage beyond." loading="lazy" width="1600" height="900" /></div>
         <div class="cap cap-low"><p class="statement" data-reveal>{c.gate}</p></div>
       </div>
 
       <div class="shot shot-define" data-shot data-from="2.5" data-to="3.55" data-sun="76">
-        <picture class="still"><source media="(orientation: portrait)" srcset={P("b076-p.webp")} /><img src={P("b076-l.webp")} alt="The bent passage: limewashed walls in deep shade, sun patches on the floor from the gate behind." loading="lazy" width="1600" height="900" /></picture>
+        <div class="still"><img class="only-p" src={P(`${AP.shots[2].file}-p.webp`)} alt={AP.shots[2].alt} loading="lazy" width="720" height="1280" /><img class="only-l" src={P("b076-l.webp")} alt="The bent passage: limewashed walls in deep shade, sun patches on the floor from the gate behind." loading="lazy" width="1600" height="900" /></div>
         <div class="cap cap-define">
           <p class="define-word"><span data-reveal>{studio.definition.word}</span> <span class="ar" lang="ar" data-reveal>{studio.arabic}</span></p>
           <p class="define-text" data-reveal>{studio.definition.text}</p>
@@ -355,6 +367,8 @@ const P = (n: string) => `/img/posters/${n}`;
   :global(html:not(.js)) .dusk, :global(html.rm) .dusk { display: none; }
   :global(html:not(.js)) .shot, :global(html.rm) .shot { position: relative; margin: 0 0 12vh; }
   :global(html:not(.js)) .still img, :global(html.rm) .still img { width: 100%; height: auto; }
+  @media (orientation: landscape) { .still .only-p { display: none; } }
+  @media (orientation: portrait) { .still .only-l { display: none; } }
   :global(html:not(.js)) .cap, :global(html.rm) .cap { position: relative; inset: auto; transform: none; padding: 28px var(--margin) 0; text-shadow: none; max-width: 44em; text-align: left; }
   :global(html:not(.js)) .hint, :global(html.rm) .hint { display: none; }
   :global(html:not(.js)) .shot-cold, :global(html.rm) .shot-cold { padding-top: 64px; }

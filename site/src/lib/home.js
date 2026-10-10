@@ -125,7 +125,11 @@ async function start() {
   const IA = pa.index, IB = pb.index;
   const zawal = IA.zawal ?? 48;
   const nA = IA.frames.length, nB = IB.frames.length;
-  const mapB = [[0, 0], [1.5, 36], [2.5, 60], [3.5, 84], [4, nB - 1]];
+  // The approach carries each frame's second (t, 0..10 s), and its ten seconds
+  // run evenly over beats 0-4. The street walk (desktop, interim) keeps its
+  // hand-set beats.
+  const tEnd = IB.frames[nB - 1].t;
+  const mapB = tEnd != null ? IB.frames.map((f, i) => [(4 * f.t) / tEnd, i]) : [[0, 0], [1.5, 36], [2.5, 60], [3.5, 84], [4, nB - 1]];
   const mapA = [[4, 0], [6, zawal], [7.5, zawal + 6], [9.5, nA - 1]];
   const minutesAt = (idx, f) => {
     const last = idx.frames.length - 1;
@@ -277,7 +281,7 @@ async function start() {
   scene(0, 4, (p, b, inside) => {
     const f = pw(mapB, b);
     pb.set(f);
-    pb.shimmer = 1 - clamp01((f - 26) / 20);
+    pb.shimmer = tEnd != null ? 0 : 1 - clamp01((f - 26) / 20);   // heat over the street; none from the air
     if (inside && b < 4) hudMinutes(minutesAt(IB, f));
   });
   scene(4, 10, (p, b, inside) => {

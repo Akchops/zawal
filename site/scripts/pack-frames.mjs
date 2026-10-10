@@ -54,9 +54,10 @@ for (const seq of ["a", "b"]) {
     const hi = pack(seq, names, join(root, cfg.hi));
     const ladder = pack(seq, names, join(root, cfg.ladder));
     const depth = seq === "b" ? pack(seq, names, join(root, "depth")) : null;
-    const meta = list.map((f) => ({ m: f.minutes, alt: f.alt, az: f.az, cam: f.cam }));
+    // t: the frame's second in the move (the approach), which the page maps to scroll
+    const meta = list.map((f) => ({ m: f.minutes, alt: f.alt, az: f.az, cam: f.cam, ...(f.t != null ? { t: f.t } : {}) }));
     const idx = { seq, base, size: spec[cfg.variant].size, hi: hi.index, ladder: ladder.index, depth: depth?.index, frames: meta,
-      zawal: spec.zawal_index ?? null };
+      zawal: spec.zawal_index ?? null, ...(spec[cfg.variant].depthRange ? { depthRange: spec[cfg.variant].depthRange } : {}) };
     writeFileSync(join(out, `${seq}-${base}-hi.bin`), hi.buf);
     writeFileSync(join(out, `${seq}-${base}-ladder.bin`), ladder.buf);
     if (depth) writeFileSync(join(out, `${seq}-${base}-depth.bin`), depth.buf);

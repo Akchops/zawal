@@ -52,6 +52,10 @@ def set_root(root):
     SITE_SEQ = root
 
 
+DEPTH_RANGE = (DMIN, DMAX)   # per sequence variant: the spec may carry its own
+BIN = os.environ.get("ZAWAL_BIN", os.path.join(RENDERER, "bin", "zawal"))
+
+
 def tiers_for(seq, variant):
     t = [x[0] for x in TIERS[variant]]
     return t + ["depth"] if seq == "b" else t
@@ -61,32 +65,60 @@ def done(seq, variant, file):
     return all(os.path.exists(tier_path(seq, variant, t, file)) for t in tiers_for(seq, variant))
 
 
-def export_depth(raw, w, h, dst):
+def export_depth(raw, w, h, dst, rng=(DMIN, DMAX)):
     import numpy as np
     from PIL import Image
+    dmin, dmax = rng
     d = np.fromfile(os.path.join(raw, "depth.f32"), dtype=np.float32).reshape(h, w)
-    d = np.nan_to_num(d, nan=DMAX, posinf=DMAX)
+    d = np.nan_to_num(d, nan=dmax, posinf=dmax)
     k = DEPTH_DIV
     d = d[: h - h % k, : w - w % k].reshape(h // k, k, w // k, k).min(axis=(1, 3))
-    v = np.log(np.clip(d, DMIN, DMAX) / DMIN) / np.log(DMAX / DMIN)
+    v = np.log(np.clip(d, dmin, dmax) / dmin) / np.log(dmax / dmin)
     img = Image.fromarray(np.round(v * 255).astype(np.uint8), "L")
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     img.save(dst + ".tmp", "WEBP", lossless=True, quality=100, method=6)
     os.replace(dst + ".tmp", dst)
 
 
+def render_cmd(f, w, h, spp, raw, scene=None):
+    cam = f["cam"]
+    cmd = [BIN, "--scene", scene or f.get("scene", "house"), "--cam", "court", "--time", f["time"],
+           "--w", str(w), "--h", str(h), "--spp", str(spp), "--out", raw,
+           "--campos", ",".join(str(v) for v in cam["pos"]), "--camtgt", ",".join(str(v) for v in cam["tgt"]),
+           "--shift", str(cam["shift"])]
+    if cam.get("level") is False:
+        cmd += ["--level", "0"]      # a free camera: keeps its pitch (the approach)
+    cmd += ["--vfov", str(cam["fov"])] if cam["fovAxis"] == "v" else ["--hfov", str(cam["fov"])]
+    return cmd
+
+
+def copy_frame(seq, variant, f, scratch, log, size=None):
+    """A frame that IS another sequence's frame (the approach's landing is
+    SEQ-A frame 0): its picture tiers are copied byte for byte, so the
+    hand-over cannot jump; only its depth map is rendered (one sample)."""
+    src_seq, src_file = f["copy_of"].split("/")
+    for name, tw, th in TIERS[variant]:
+        dst = tier_path(seq, variant, name, f["file"])
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        shutil.copy(tier_path(src_seq, variant, name, src_file), dst)
+    if seq == "b":
+        w, h = size or ((1600, 900) if variant == "landscape" else (720, 1280))
+        raw = os.path.join(scratch, f"{seq}{SHORT[variant]}", f["file"] + "-depth")
+        subprocess.run(render_cmd(f, w, h, 1, raw, scene="house"), check=True, stdout=log, stderr=log)
+        export_depth(raw, w, h, tier_path(seq, variant, "depth", f["file"]), DEPTH_RANGE)
+        shutil.rmtree(raw, ignore_errors=True)
+    return 0.0
+
+
 def render_frame(seq, variant, f, spp, scratch, log, scale_spp=True, size=None):
     from PIL import Image
-    cam = f["cam"]
+    if "copy_of" in f:
+        return copy_frame(seq, variant, f, scratch, log, size)
     w, h = size or ((1600, 900) if variant == "landscape" else (720, 1280))
     raw = os.path.join(scratch, f"{seq}{SHORT[variant]}", f["file"])
     if scale_spp:
         spp = int(round(spp * f.get("sppScale", 1.0)))
-    cmd = [os.path.join(RENDERER, "bin", "zawal"), "--scene", "house", "--cam", "court", "--time", f["time"],
-           "--w", str(w), "--h", str(h), "--spp", str(spp), "--out", raw,
-           "--campos", ",".join(str(v) for v in cam["pos"]), "--camtgt", ",".join(str(v) for v in cam["tgt"]),
-           "--shift", str(cam["shift"])]
-    cmd += ["--vfov", str(cam["fov"])] if cam["fovAxis"] == "v" else ["--hfov", str(cam["fov"])]
+    cmd = render_cmd(f, w, h, spp, raw)
     t0 = time.time()
     if not os.path.exists(os.path.join(raw, "color.f32")):
         subprocess.run(cmd, check=True, stdout=log, stderr=log)
@@ -102,7 +134,7 @@ def render_frame(seq, variant, f, spp, scratch, log, scale_spp=True, size=None):
         im.save(p + ".tmp", "WEBP", quality=q, method=6)
         os.replace(p + ".tmp", p)          # a half-written tier never counts as done
     if seq == "b":
-        export_depth(raw, w, h, tier_path(seq, variant, "depth", f["file"]))
+        export_depth(raw, w, h, tier_path(seq, variant, "depth", f["file"]), DEPTH_RANGE)
     # Keep the PNG master and meta; drop the float buffers.
     shutil.copy(os.path.join(raw, "meta.json"), raw + ".json")
     shutil.rmtree(raw, ignore_errors=True)
@@ -151,11 +183,15 @@ def main():
     ap.add_argument("--root", default=SITE_SEQ, help="where the WebP tiers go (default: the site)")
     ap.add_argument("--only", type=int, nargs="*", default=None, help="render just these frame indices")
     ap.add_argument("--flat-spp", action="store_true", help="ignore the per-frame sppScale (for tests)")
+    ap.add_argument("--size", default=None, help="WxH: render small (previews), resized up into the tiers")
     args = ap.parse_args()
     set_root(args.root)
+    global DEPTH_RANGE
 
     spec = json.load(open(os.path.join(RENDERER, "sequences", f"seq_{args.seq}.json")))
     frames = spec[args.variant]["frames"]
+    DEPTH_RANGE = tuple(spec[args.variant].get("depthRange", (DMIN, DMAX)))
+    size = tuple(int(v) for v in args.size.split("x")) if args.size else None
     pick = [f for f in frames if args.frames == "all" or (f["i"] % 2 == 0) == (args.frames == "even")]
     if args.only is not None:
         pick = [f for f in frames if f["i"] in args.only]
@@ -168,12 +204,12 @@ def main():
         if "hold_of" in f:
             src = frames[f["hold_of"]]["file"]
             if not done(args.seq, args.variant, src):
-                render_frame(args.seq, args.variant, frames[f["hold_of"]], args.spp, args.scratch, log)
+                render_frame(args.seq, args.variant, frames[f["hold_of"]], args.spp, args.scratch, log, size=size)
             for name in tiers_for(args.seq, args.variant):
                 shutil.copy(tier_path(args.seq, args.variant, name, src), tier_path(args.seq, args.variant, name, f["file"]))
             dt = 0.0
         else:
-            dt = render_frame(args.seq, args.variant, f, args.spp, args.scratch, log, scale_spp=not args.flat_spp)
+            dt = render_frame(args.seq, args.variant, f, args.spp, args.scratch, log, scale_spp=not args.flat_spp, size=size)
         chunk_files.append(f["file"])
         print(f"  {f['file']} {f['time']} ev {f['ev']}  {dt:.0f}s  ({n + 1}/{len(pending)})", flush=True)
         if args.commit and (len(chunk_files) >= args.chunk or n == len(pending) - 1):

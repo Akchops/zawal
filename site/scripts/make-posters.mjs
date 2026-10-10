@@ -12,11 +12,14 @@ import { fileURLToPath } from "node:url";
 const site = join(dirname(fileURLToPath(import.meta.url)), "..");
 const out = join(site, "public", "img", "posters");
 mkdirSync(out, { recursive: true });
-const FRAMES = ["b000", "b036", "b060", "b076", "a000", "a048", "a100", "a120"];
+// Phones open on the approach and desktop on the street walk, so the first
+// shots rest on different frames in each orientation (see index.astro, AP).
+const DAY = ["a000", "a048", "a100", "a120"];
+const FRAMES = { p: ["b000", "b031", "b081", "b115", ...DAY], l: ["b000", "b036", "b060", "b076", ...DAY] };
 let n = 0, missing = [];
-for (const f of FRAMES) {
-  const seq = f[0];
-  for (const [v, dir] of [["p", "p/720"], ["l", "l/1600"]]) {
+for (const [v, dir] of [["p", "p/720"], ["l", "l/1600"]]) {
+  for (const f of FRAMES[v]) {
+    const seq = f[0];
     const src = join(site, "frames", seq, dir, `${f}.webp`);
     if (existsSync(src)) { copyFileSync(src, join(out, `${f}-${v}.webp`)); n++; } else missing.push(`${f}-${v}`);
   }
