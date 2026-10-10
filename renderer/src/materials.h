@@ -49,6 +49,8 @@ enum MaterialId : int {
   M_COPPER_DEEP,    // pool lining: deep, even verdigris
   M_CORAL,          // coral-stone walls under a worn lime render (old Deira)
   M_BOOKS,          // a wall of book spines on teak shelves
+  M_ROOF,           // lime-screed flat roof: repair bays, ponding marks, filled cracks, blown sand
+  M_TANK,           // polyethylene roof water tank / AC casing: sun-faded, dust-streaked
   M_COUNT
 };
 
@@ -309,6 +311,83 @@ inline BSDF matStone(V3 p, V3 n) {
   b.alpha = 0.55f;
   b.metal = 0.0f;
   b.n = bump(n, p, 0.0006f, 1.0f, [](V3 q) { return 0.00025f * gnoise(q * 60.0f) + 0.0006f * fbm(q * 4.0f, 3); });
+  return b;
+}
+
+// The roof's crack net is the walls' craquelure at a larger cell (defined
+// with the weathering, below).
+inline float crackNet(float u, float v, uint32_t seed);
+inline float crackNetRoof(float u, float v, uint32_t seed) { return crackNet(u, v, seed ^ 0x51ed27u); }
+
+// Flat roof: a lime screed laid in bays, a shade warmer and dirtier than the
+// walls (nobody re-washes a roof). Seen from the air for the first time, so it
+// carries what a real Gulf roof shows: bays laid on different days, ponding
+// rings where water stood after the winter rain, filled cracks along the bay
+// joints, and sand blown in by the shamal (from the north-west) in long
+// streaks. Albedo only, apart from a faint unevenness in the bump.
+inline BSDF matRoof(V3 p, V3 n, uint32_t seed) {
+  BSDF b;
+  float s = (seed & 1023) * 0.131f;
+  // Each roof its own age and mix: a greyer cement-lime, a sandier mud-lime,
+  // one recently re-screeded and paler.
+  float age = hashf(seed * 2654435761u + 17u);
+  V3 a = age < 0.33f ? hex(0xADA28F) : age < 0.75f ? hex(0xBCA585) : hex(0xCDBEA2);
+  // Some roofs are cement-grey; some carry a white reflective coat, scuffed
+  // through along the paths people walk and greyed by dust in the low spots.
+  float coat = hashf(seed * 747796405u + 5u);
+  bool white = coat < 0.2f;
+  if (coat < 0.2f) a = hex(0xDCD8CF);
+  else if (coat < 0.48f) a = hex(0xA39C90);
+  // Bays: a 2.4 m grid, each bay a slightly different tone (a different mix, a different day).
+  const float BAY = 2.4f;
+  int bx = (int)std::floor((p.x + 0.3f * s) / BAY), bz = (int)std::floor((p.z - 0.2f * s) / BAY);
+  float bay = hashf(hash3i(bx, bz, (int)(seed & 0xffff))) - 0.5f;
+  a *= 1.0f + 0.13f * bay;
+  // Cloudy mottling and grain, as in the walls but coarser.
+  float cloud = warpedFbm(V3(p.x, 0.0f, p.z) * 0.45f + V3(s), 4, 1.2f);
+  a *= 1.0f + 0.06f * cloud + 0.025f * gnoise(p * 90.0f);
+  // Ponding: soft darker blots where water stood after the winter rain (broad
+  // stains, never contour lines: thin contours read as scribbles).
+  float pond = fbm2(p.x * 0.28f + s, p.z * 0.28f, 3);
+  a = lerp(a, a * hex(0xC7BCA9) * 1.02f, 0.45f * smoothstep(0.15f, 0.42f, pond));
+  // Filled cracks along the bay joints (darker, irregular) and a few across them.
+  float jx = std::fabs((p.x + 0.3f * s) / BAY - std::round((p.x + 0.3f * s) / BAY)) * BAY;
+  float jz = std::fabs((p.z - 0.2f * s) / BAY - std::round((p.z - 0.2f * s) / BAY)) * BAY;
+  float joint = 1.0f - smoothstep(0.004f, 0.012f, std::min(jx, jz) + 0.006f * gnoise2(p.x * 3.0f, p.z * 3.0f));
+  float keepJ = smoothstep(-0.1f, 0.25f, gnoise2(p.x * 0.9f + s, p.z * 0.9f));
+  float cr = crackNetRoof(p.x * 0.35f, p.z * 0.35f, seed) * smoothstep(0.2f, 0.5f, fbm2(p.x * 0.3f, p.z * 0.3f + s, 2));
+  a = a * (1.0f - 0.22f * saturate(joint * keepJ + 0.6f * cr));
+  // Old bitumen patches over leaks: a few dark, matt, irregular blots.
+  float tar = smoothstep(0.5f, 0.56f, fbm2(p.x * 0.9f + 7.0f * age, p.z * 0.9f - s, 3)) * (age > 0.45f ? 1.0f : 0.0f);
+  a = lerp(a, hex(0x5E564C), 0.75f * tar);
+  // Grime gathers along the parapet foot and in long drainage runs to the spouts.
+  float run = smoothstep(0.35f, 0.75f, fbm2(p.x * 0.15f + s, p.z * 1.4f, 2)) * smoothstep(0.35f, 0.75f, fbm2(p.x * 1.4f, p.z * 0.15f + s, 2));
+  a = lerp(a, a * 0.82f, 0.5f * run);
+  // Shamal sand: streaks stretched along the NW-SE wind, warmer and paler.
+  float u = 0.707f * (p.x - p.z), v = 0.707f * (p.x + p.z);
+  float sand = smoothstep(0.1f, 0.6f, fbm2(u * 0.35f + s, v * 2.6f, 3));
+  a = lerp(a, hex(0xD8C3A0), (white ? 0.25f : 0.45f) * sand);
+  if (white) {
+    float scuff = smoothstep(0.2f, 0.6f, fbm2(p.x * 0.6f + s, p.z * 0.6f, 3));
+    a = lerp(a, hex(0xA9A090), 0.5f * scuff);
+  }
+  b.albedo = a;
+  b.f0 = V3(0.03f);
+  b.alpha = 0.88f;
+  b.metal = 0.0f;
+  b.n = bump(n, p, 0.0015f, 1.0f, [](V3 q) { return 0.0012f * fbm(q * 3.0f, 3) + 0.0002f * gnoise(q * 70.0f); });
+  return b;
+}
+
+inline BSDF matTank(V3 p, V3 n, uint32_t seed) {
+  BSDF b;
+  // Off-white or sand-beige plastic, chalky after years of sun, with dust
+  // gathered on top and washed down the sides in streaks.
+  V3 a = hashf(seed * 2246822519u + 9u) < 0.55f ? hex(0xD9D4C8) : hex(0xCDB894);
+  a *= 1.0f + 0.05f * fbm(p * 2.0f, 3);
+  float streak = smoothstep(0.1f, 0.7f, fbm(V3(p.x * 9.0f, p.y * 0.8f, p.z * 9.0f), 3));
+  a = lerp(a, a * hex(0xB8AC98), 0.45f * streak);
+  b.albedo = a; b.f0 = V3(0.035f); b.alpha = 0.6f; b.metal = 0.0f; b.n = n;
   return b;
 }
 
@@ -878,15 +957,86 @@ inline void applyStains(const Scene& sc, BSDF& b, V3 p, V3 ng) {
   }
 }
 
+// Weathering for the outsides of the quarter, which only the approach sees
+// (from the air and from the lanes around the house). At 30-100 m the fine
+// marks of the street facade are below a pixel, so what has to carry the age
+// is the large scale: wall-to-wall tone, broad dirt curtains under copings,
+// rising damp at the foot, patched re-plaster, sand drifted against parapets.
+// The courtyard itself is left exactly as the day film has it.
+inline void applyAerialWeather(BSDF& b, int mat, V3 p, const ShadeCtx& c) {
+  if (p.x > -0.05f && p.x < 7.25f && p.z > -0.05f && p.z < 13.25f && p.y < 7.6f) return;
+  const Prim& pr = *c.prim;
+  // The film's own house keeps its look everywhere the day film or the street
+  // could see it; only its outer envelope (west, north and back walls, roofs)
+  // takes the new weathering.
+  if ((int)(c.prim - c.sc->prims.data()) < c.sc->aerialFrom &&
+      !(p.x < -4.4f || p.z < -4.4f || p.z > 17.05f || p.y > 6.95f)) return;
+  float hs = (float)(pr.seed % 1009u) * 0.013f;
+  if (mat == M_ROOF) {
+    if (pr.type != P_BOX || c.ng.y < 0.5f) return;
+    // Sand blown against the parapets and into the corners of each roof.
+    float d = std::min(std::min(p.x - pr.lo.x, pr.hi.x - p.x), std::min(p.z - pr.lo.z, pr.hi.z - p.z));
+    float reach = 0.45f + 0.55f * (0.5f + 0.5f * gnoise2(p.x * 0.9f + hs, p.z * 0.9f));
+    float drift = 1.0f - smoothstep(0.0f, reach, d);
+    b.albedo = lerp(b.albedo, b.albedo * hex(0xB7A487), 0.55f * drift);
+    return;
+  }
+  if (std::fabs(c.ng.y) > 0.2f) return;
+  float u = std::fabs(c.ng.x) > std::fabs(c.ng.z) ? p.z : p.x;
+  // Wall-to-wall tone: each wall was limewashed in a different year.
+  float tone = hashf(pr.seed * 7u + 3u);
+  b.albedo = b.albedo * lerp(V3(0.9f, 0.885f, 0.86f), V3(1.03f, 1.015f, 0.99f), tone);
+  // Broad mottling, readable from far away.
+  float mott = fbm2(u * 0.35f + hs, p.y * 0.5f, 3);
+  b.albedo = b.albedo * (1.0f - 0.09f * smoothstep(-0.1f, 0.5f, mott));
+  if (pr.type != P_BOX) return;
+  float H = pr.hi.y - pr.lo.y;
+  // Patches of newer plaster, cut square and never quite matched.
+  float cu = std::floor(u / 1.7f), cy = std::floor(p.y / 1.25f);
+  float ph = hashf(hash2i((int)cu, (int)cy) ^ pr.seed);
+  if (ph < 0.07f && p.y > 0.6f) {
+    float fu = u / 1.7f - cu, fy = p.y / 1.25f - cy;
+    float e = 0.03f * gnoise2(u * 6.0f, p.y * 6.0f);
+    float in = smoothstep(0.12f + e, 0.16f + e, fu) * smoothstep(0.12f - e, 0.16f - e, 1.0f - fu) *
+               smoothstep(0.15f + e, 0.19f + e, fy) * smoothstep(0.15f - e, 0.19f - e, 1.0f - fy);
+    b.albedo = lerp(b.albedo, b.albedo * (ph < 0.035f ? V3(1.07f, 1.06f, 1.05f) : V3(0.94f, 0.93f, 0.91f)), in);
+  }
+  if (H < 2.0f) return;
+  // Dirt curtains under the coping: dust washed off the roof by each rain.
+  float dy = pr.hi.y - p.y;
+  float L = 0.5f + 2.2f * (0.5f + 0.5f * gnoise2(u * 0.6f + hs, 1.7f));
+  float col = smoothstep(-0.15f, 0.45f, gnoise2(u * 2.4f + hs, 5.3f)) * (0.6f + 0.4f * smoothstep(-0.3f, 0.3f, gnoise2(u * 9.0f, 2.1f)));
+  float curtain = col * (1.0f - smoothstep(0.0f, L, dy)) * smoothstep(0.0f, 0.06f, dy);
+  b.albedo = lerp(b.albedo, b.albedo * hex(0xA59784), 0.6f * curtain);
+  // Rising damp at the foot, with a pale salt tide line on top of it.
+  if (pr.lo.y < 0.05f) {
+    float h = 0.3f + 0.4f * (0.5f + 0.5f * gnoise2(u * 0.5f + hs, 3.3f));
+    float damp = 1.0f - smoothstep(h - 0.12f, h, p.y);
+    b.albedo = lerp(b.albedo, b.albedo * hex(0xB3A794), 0.7f * damp);
+    float tide = std::exp(-((p.y - h) * (p.y - h)) / 0.0009f) * (0.5f + 0.5f * gnoise2(u * 4.0f, 7.0f));
+    b.albedo = lerp(b.albedo, hex(0xE6E1D6), 0.35f * tide);
+  }
+}
+
 inline void applyWeather(BSDF& b, int mat, V3 p, const ShadeCtx& c) {
   if (b.dielectric || b.thin) return;
+  // The quarter's lanes, away from the film's own street: packed earth darkened
+  // by traffic and oil, so the houses stand off the ground seen from above.
+  if (mat == M_STREET && c.sc && c.sc->aerial) {
+    float r = std::sqrt((p.x - 6.0f) * (p.x - 6.0f) + (p.z - 6.0f) * (p.z - 6.0f));
+    float k = smoothstep(32.0f, 48.0f, r);
+    float patch = fbm2(p.x * 0.07f, p.z * 0.07f, 3);
+    V3 g = b.albedo * lerp(V3(0.78f, 0.76f, 0.73f), V3(0.9f, 0.87f, 0.82f), smoothstep(-0.3f, 0.4f, patch));
+    b.albedo = lerp(b.albedo, g, k);
+  }
   bool plaster = mat == M_LIME || mat == M_LIME_SHADE || mat == M_CORAL;
-  bool masonry = plaster || mat == M_RAMMED || mat == M_STONE;
+  bool masonry = plaster || mat == M_RAMMED || mat == M_STONE || mat == M_ROOF;
   // 1. Dust on anything that faces up and is not the floor itself.
   float up = b.n.y;
   if (up > 0.5f && p.y > 0.04f) {
     float dust = smoothstep(0.5f, 0.95f, up) * (0.35f + 0.45f * (0.5f + 0.5f * fbm(p * 5.0f, 3)));
     if (mat == M_CARPAINT || mat == M_GLASS) dust *= 0.8f;
+    if (mat == M_ROOF) dust *= 0.35f;   // the roof screed carries its own sand (matRoof)
     b.albedo = lerp(b.albedo, dustColour(), dust * 0.6f);
     b.f0 = lerp(b.f0, V3(0.03f), dust);
     b.alpha = lerpf(b.alpha, 0.9f, dust);
@@ -903,6 +1053,7 @@ inline void applyWeather(BSDF& b, int mat, V3 p, const ShadeCtx& c) {
     b.metal *= 1.0f - dust;
   }
   if (!c.sc || !c.prim) return;
+  if (c.sc->aerial && masonry) applyAerialWeather(b, mat, p, c);
   // 3. Run-off from sills, spouts and copings.
   if (masonry) applyStains(*c.sc, b, p, c.ng);
   // 4. Parapet run-off: faint streaks from the top of tall plastered walls.
@@ -946,6 +1097,8 @@ inline BSDF shadeMaterial(int mat, V3 p, V3 n, const ShadeCtx& c) {
     case M_STREET: b = matStreet(p, n); break;
     case M_CORAL: b = matCoral(p, n, seed); break;
     case M_BOOKS: b = matBooks(p, n); break;
+    case M_ROOF: b = matRoof(p, n, seed); break;
+    case M_TANK: b = matTank(p, n, seed); break;
     case M_TERRACOTTA: b = matTerracotta(p, n); break;
     case M_PALM: b = matPalm(p, n); break;
     case M_BRONZE: b = matBronze(p, n); break;
@@ -991,6 +1144,8 @@ inline BSDF shadeMaterialLite(int mat, V3 p, V3 n, const ShadeCtx& c) {
     case M_STREET: b.albedo = hex(0xD0BC9C) * (1.0f + v); b.alpha = 0.92f; return b;
     case M_CORAL: b.albedo = hex(0xD2BF9E) * (1.0f + v); b.alpha = 0.85f; return b;
     case M_BOOKS: b.albedo = hex(0x7A6650) * (1.0f + v); b.alpha = 0.7f; return b;
+    case M_ROOF: b.albedo = hex(0xCAB898) * (1.0f + v); b.alpha = 0.88f; return b;
+    case M_TANK: b.albedo = hex(0xD4CCBC); b.alpha = 0.6f; return b;
     case M_TERRACOTTA: b.albedo = hex(0xB06A45); return b;
     case M_PALM: b.albedo = hex(0xB89C6B); return b;
     case M_BARK: b.albedo = hex(0x6E6155); return b;

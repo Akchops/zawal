@@ -109,6 +109,8 @@ struct Scene {
   struct SphereLight { V3 c; float r; V3 Le; int group; };
   std::vector<SphereLight> lights;
   bool nightLamps = false;         // build lanterns for the night (no frosted bulb)
+  bool aerial = false;             // weather the outsides seen from the air (approach)
+  int aerialFrom = 0;              // prims from here on were added for the approach
   float groundY = 0.0f;
   int groundMat = -1;              // -1: no infinite ground
 
