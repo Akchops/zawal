@@ -68,6 +68,7 @@ async function start() {
   const studyL = stage.querySelector('[data-layer="study"]');
   const studioL = stage.querySelector('[data-layer="studio"]');
   const dusk = stage.querySelector("[data-dusk]");
+  const grade = stage.querySelector("[data-grade]");
   const hudEl = stage.querySelector("[data-hud]");
   const t = tier();
   const aspect = t === "p" ? "p" : "l";
@@ -282,6 +283,9 @@ async function start() {
     const f = pw(mapB, b);
     pb.set(f);
     pb.shimmer = tEnd != null ? 0 : 1 - clamp01((f - 26) / 20);   // heat over the street; none from the air
+    // The approach opens on the sun's line, a picture with no shadows in it:
+    // the cold-open text needs its own scrim, gone as the camera leaves the line.
+    if (tEnd != null) grade.style.setProperty("--cold", (1 - ease(ramp(b, 0.3, 0.8))).toFixed(3));
     if (inside && b < 4) hudMinutes(minutesAt(IB, f));
   });
   scene(4, 10, (p, b, inside) => {

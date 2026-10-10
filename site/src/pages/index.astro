@@ -64,8 +64,9 @@ const AP = {
            and layers over the stage; without JavaScript, or with reduced
            motion, they are a long-form article, each with its still. -->
       <div class="shot shot-cold" data-shot data-from="0" data-to="0.55" data-sun="74.5">
-        <!-- the same files as the first paint, so the static still costs no extra bytes -->
-        <div class="still"><img class="only-p" src="/img/hero/b000-p720.webp" alt={AP.b000} width="720" height="1280" /><img class="only-l" src="/img/hero/b000-l1280.webp" alt="The east facade of a limewashed house at 07:30, the low sun full on it, a pierced brass lantern by the gate, a quiet street with parked cars and a ghaf tree." width="1280" height="720" /></div>
+        <!-- the same files as the first paint, so the static still costs no extra bytes; lazy, so the
+             orientation hidden by CSS is never fetched (a hidden eager img still loads) -->
+        <div class="still"><img class="only-p" src="/img/hero/b000-p720.webp" alt={AP.b000} loading="lazy" width="720" height="1280" /><img class="only-l" src="/img/hero/b000-l1280.webp" loading="lazy" alt="The east facade of a limewashed house at 07:30, the low sun full on it, a pierced brass lantern by the gate, a quiet street with parked cars and a ghaf tree." width="1280" height="720" /></div>
         <div class="cap cap-cold">
           <p class="mono kicker">{c.coldOpen.kicker}</p>
           <h1 class="wordmark"><span class="cold-line">ZAWAL</span></h1>
@@ -236,6 +237,13 @@ const AP = {
   :global(html.js:not(.rm)) .nojs-note { display: none; }
   .grade { position: absolute; inset: 0; pointer-events: none;
     background: linear-gradient(180deg, rgba(15, 20, 24, 0.38) 0%, rgba(15, 20, 24, 0) 26%, rgba(15, 20, 24, 0) 58%, rgba(15, 20, 24, 0.55) 100%); }
+  /* The phone's opening is shot from the sun's own position, so it has no
+     shadow anywhere to set text against: a scrim under the cold-open text
+     (wordmark band and the hint), faded out by the page (--cold) as the
+     camera leaves the sun's line. */
+  .grade::after { content: ""; position: absolute; inset: 0; opacity: var(--cold, 0);
+    background: linear-gradient(180deg, rgba(15, 20, 24, 0.34) 0%, rgba(15, 20, 24, 0.40) 20%, rgba(15, 20, 24, 0.30) 40%,
+      rgba(15, 20, 24, 0.06) 56%, rgba(15, 20, 24, 0.06) 70%, rgba(15, 20, 24, 0.32) 88%, rgba(15, 20, 24, 0.40) 100%); }
   .dusk { position: absolute; inset: 0; z-index: 3; pointer-events: none; background: #0f1418; opacity: 0; visibility: hidden; }
 
   .cap { position: absolute; left: var(--margin); right: var(--margin); color: var(--noon); text-shadow: 0 1px 24px rgba(15, 20, 24, 0.35); }

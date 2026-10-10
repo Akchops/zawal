@@ -33,6 +33,12 @@ export function mountFilm(el, totalBeats) {
 /** A scene: [from, to] in beats, and a function of local progress. */
 export function scene(from, to, update) {
   scenes.push({ from, to, update, active: false });
+  // The clock may already have ticked at this beat before the scene existed
+  // (the page registers its scenes after fetching the sequence indices, and
+  // on a slow network the first frame wins that race): run it now, not on
+  // the reader's first scroll.
+  current = -1;
+  schedule();
 }
 
 export function beatNow() {
