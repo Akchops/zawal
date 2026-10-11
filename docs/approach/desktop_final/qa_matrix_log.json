@@ -1,0 +1,146 @@
+[
+ {
+  "viewport": "320x640",
+  "mode": "normal",
+  "console": [],
+  "network": []
+ },
+ {
+  "viewport": "320x640",
+  "mode": "rm",
+  "console": [],
+  "network": []
+ },
+ {
+  "viewport": "320x640",
+  "mode": "nogl",
+  "console": [],
+  "network": []
+ },
+ {
+  "viewport": "320x640",
+  "mode": "nojs",
+  "console": [],
+  "network": []
+ },
+ {
+  "viewport": "390x844",
+  "mode": "normal",
+  "console": [],
+  "network": []
+ },
+ {
+  "viewport": "390x844",
+  "mode": "rm",
+  "console": [],
+  "network": []
+ },
+ {
+  "viewport": "390x844",
+  "mode": "nogl",
+  "console": [],
+  "network": []
+ },
+ {
+  "viewport": "390x844",
+  "mode": "nojs",
+  "console": [],
+  "network": []
+ },
+ {
+  "viewport": "430x932",
+  "mode": "normal",
+  "console": [],
+  "network": []
+ },
+ {
+  "viewport": "430x932",
+  "mode": "rm",
+  "console": [],
+  "network": []
+ },
+ {
+  "viewport": "430x932",
+  "mode": "nogl",
+  "console": [],
+  "network": []
+ },
+ {
+  "viewport": "430x932",
+  "mode": "nojs",
+  "console": [],
+  "network": []
+ },
+ {
+  "viewport": "768x1024",
+  "mode": "normal",
+  "console": [],
+  "network": []
+ },
+ {
+  "viewport": "768x1024",
+  "mode": "rm",
+  "console": [],
+  "network": []
+ },
+ {
+  "viewport": "768x1024",
+  "mode": "nogl",
+  "console": [],
+  "network": []
+ },
+ {
+  "viewport": "768x1024",
+  "mode": "nojs",
+  "console": [],
+  "network": []
+ },
+ {
+  "viewport": "1440x900",
+  "mode": "normal",
+  "console": [],
+  "network": []
+ },
+ {
+  "viewport": "1440x900",
+  "mode": "rm",
+  "console": [],
+  "network": []
+ },
+ {
+  "viewport": "1440x900",
+  "mode": "nogl",
+  "console": [],
+  "network": []
+ },
+ {
+  "viewport": "1440x900",
+  "mode": "nojs",
+  "console": [],
+  "network": []
+ },
+ {
+  "viewport": "1728x1117",
+  "mode": "normal",
+  "console": [],
+  "network": []
+ },
+ {
+  "viewport": "1728x1117",
+  "mode": "rm",
+  "console": [],
+  "network": []
+ },
+ {
+  "viewport": "1728x1117",
+  "mode": "nogl",
+  "console": [],
+  "network": []
+ },
+ {
+  "viewport": "1728x1117",
+  "mode": "nojs",
+  "console": [],
+  "network": []
+ }
+]
