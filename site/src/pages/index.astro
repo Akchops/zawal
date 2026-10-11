@@ -251,6 +251,17 @@ const AP = {
   .cap-mid { top: 38svh; max-width: 14em; }
   .cap-define { top: 30svh; max-width: 26em; }
   .cap-zawal { bottom: calc(64px + env(safe-area-inset-bottom)); max-width: 20em; }
+  /* From tablet up, a caption's measure comes from its own type, not the
+     body's: a 17em box at body size held an 86 px statement (1440) to two
+     words a line. Statements run about 10 of their ems, heads about 15:
+     two or three balanced lines at any desktop width. */
+  @media (min-width: 768px) {
+    /* a column, so the revealed lines (inline-blocks) keep stacking now that
+       the box no longer forces them apart */
+    .cap-low, .cap-mid, .cap-zawal { max-width: none; display: flex; flex-direction: column; align-items: flex-start; }
+    .cap-low .statement, .cap-mid .statement { max-width: 11.5em; }
+    .cap-low .head, .cap-zawal .head { max-width: 15em; }
+  }
   .kicker { margin: 0 0 18px; color: rgba(247, 243, 234, 0.8); }
   .tagline { font-family: var(--f-display); font-stretch: 112%; font-weight: 300; font-size: clamp(19px, 2.2vw, 30px); margin: 18px 0 0; }
   .hint { position: absolute; top: calc(78svh - 22svh); margin: 0; color: rgba(247, 243, 234, 0.75); }
@@ -344,6 +355,10 @@ const AP = {
   /* Night */
   .cap-night { bottom: calc(76px + env(safe-area-inset-bottom)); max-width: 30em; }
   .cap-night .statement { margin: 10px 0 24px; font-size: clamp(30px, 4.6vw, 76px); }
+  @media (min-width: 768px) {
+    .cap-night { max-width: none; display: flex; flex-direction: column; align-items: flex-start; }
+    .cap-night .statement { max-width: 13em; }
+  }
   .night-contact { display: grid; gap: 6px; font-style: normal; }
   /* the reveal makes every revealed line inline-block; this one keeps its rows */
   :global(html.js:not(.rm)) .night-contact[data-reveal] { display: inline-grid; }
